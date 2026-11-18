@@ -1,0 +1,28 @@
+{
+  "name": "@nextep/gates",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Toolkit para gates de invariantes: descubrimiento por disco que falla sin sujetos, higiene de excepciones declaradas dos veces con caducidad y escaner de higiene para repos publicos.",
+  "license": "UNLICENSED",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "fast-glob": "3.3.3",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}
