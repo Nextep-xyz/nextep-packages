@@ -1,0 +1,13 @@
+{
+  "exceptions": [
+    {
+      "id": "EXC-DEMO-001",
+      "guard": "NX-POWER-001",
+      "reason": "Excepción de prueba: no debe surtir efecto",
+      "owner": "devops",
+      "expires": "2027-11-18"
+    }
+  ],
+  "now": "2026-11-18T00:00:00Z",
+  "stage": "prod"
+}

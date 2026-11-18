@@ -1,0 +1,20 @@
+{
+  "version": "55.0.0",
+  "files": {
+    "7e2a9c0e7a6c03a49a1c03c5a2ee1034fa341b57d7476b320a6aa12a68aa810a": {
+      "displayName": "DemoDashboard-Dev Template",
+      "source": {
+        "path": "DemoDashboard-Dev.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-42b64b11": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "7e2a9c0e7a6c03a49a1c03c5a2ee1034fa341b57d7476b320a6aa12a68aa810a.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

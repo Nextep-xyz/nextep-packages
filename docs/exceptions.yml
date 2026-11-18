@@ -1,0 +1,4 @@
+# Excepciones declaradas del repositorio. Toda excepcion se declara DOS veces: una marca `nextep-exception: <ID>` en el codigo y una entrada aqui
+# con motivo (>= 10 caracteres), dueno y caducidad. El gate de higiene falla con marcas huerfanas, entradas obsoletas o vencidas.
+version: 1
+exceptions: []

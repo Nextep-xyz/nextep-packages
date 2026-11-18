@@ -1,0 +1,61 @@
+{
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "project",
+            "Value": "Demo"
+          },
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          }
+        ]
+      }
+    },
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "prod"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    },
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    }
+  }
+}

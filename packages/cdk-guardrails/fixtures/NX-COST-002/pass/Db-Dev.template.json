@@ -1,0 +1,49 @@
+{
+  "Resources": {
+    "Primary": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.small",
+        "Engine": "postgres",
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    },
+    "Writer": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.serverless",
+        "Engine": "postgres",
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ],
+        "DBClusterIdentifier": {
+          "Ref": "Cluster"
+        }
+      }
+    }
+  }
+}

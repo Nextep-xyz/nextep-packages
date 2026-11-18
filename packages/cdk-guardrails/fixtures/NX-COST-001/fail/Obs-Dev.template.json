@@ -1,0 +1,15 @@
+{
+  "Resources": {
+    "Board": {
+      "Type": "AWS::CloudWatch::Dashboard",
+      "Properties": {
+        "DashboardName": "demo",
+        "DashboardBody": "{}"
+      }
+    },
+    "Alarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {}
+    }
+  }
+}

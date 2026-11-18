@@ -1,0 +1,15 @@
+# Muestra del archivo de excepciones de un proyecto consumidor: la usa el test del lector sin dependencias.
+version: 1
+exceptions:
+  - id: EXC-SAMPLE-DB
+    guard: NX-COST-002
+    reason: "Instancia de laboratorio: el tamano micro es intencional y se revisa al vencer"
+    owner: platform
+    expires: "2027-05-17"
+
+  # Un comentario entre entradas y un # dentro de comillas no son lo mismo.
+  - id: EXC-SAMPLE-INSIGHTS
+    guard: NX-COST-003
+    reason: 'Container Insights en stg durante la prueba de carga # temporal'
+    owner: platform # dueno de la excepcion
+    expires: "2027-01-31"

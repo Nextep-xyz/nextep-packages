@@ -1,0 +1,67 @@
+{
+  "Resources": {
+    "Primary": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.micro",
+        "Engine": "postgres",
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    },
+    "Nano": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t3.nano",
+        "Engine": "postgres",
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    },
+    "Fine": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.small",
+        "Engine": "postgres",
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    }
+  }
+}

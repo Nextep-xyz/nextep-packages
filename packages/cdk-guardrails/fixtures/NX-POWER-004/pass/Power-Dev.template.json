@@ -1,0 +1,68 @@
+{
+  "Resources": {
+    "StopOk": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Properties": {
+        "ScheduleExpression": "cron(30 20 ? * MON-FRI *)",
+        "ScheduleExpressionTimezone": "America/Caracas",
+        "FlexibleTimeWindow": {
+          "Mode": "OFF"
+        },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":scheduler:::aws-sdk:rds:stopDBInstance"
+              ]
+            ]
+          },
+          "Input": "{\"DbInstanceIdentifier\":\"demo-db\"}",
+          "RoleArn": {
+            "Fn::GetAtt": [
+              "SchedulerRole",
+              "Arn"
+            ]
+          }
+        }
+      }
+    },
+    "StopWeekend": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Properties": {
+        "ScheduleExpression": "cron(0 22 ? * SAT,SUN *)",
+        "ScheduleExpressionTimezone": "America/Caracas",
+        "FlexibleTimeWindow": {
+          "Mode": "OFF"
+        },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":scheduler:::aws-sdk:rds:stopDBInstance"
+              ]
+            ]
+          },
+          "Input": "{\"DbInstanceIdentifier\":\"demo-db\"}",
+          "RoleArn": {
+            "Fn::GetAtt": [
+              "SchedulerRole",
+              "Arn"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "Resources": {
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "disabled"
+          }
+        ]
+      }
+    },
+    "Default": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {}
+    }
+  }
+}

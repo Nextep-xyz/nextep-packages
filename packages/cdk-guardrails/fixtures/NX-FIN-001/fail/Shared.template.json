@@ -1,0 +1,16 @@
+{
+  "Resources": {
+    "Param": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Type": "String",
+        "Value": "x",
+        "Tags": {
+          "Application": "Core",
+          "Environment": "dev",
+          "Project": "Demo"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "Resources": {
+    "Api": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "DesiredCount": 1
+      }
+    },
+    "ScaleTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MinCapacity": 1,
+        "MaxCapacity": 4,
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs",
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/demo-cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Api",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        },
+        "ScheduledActions": [
+          {
+            "ScheduledActionName": "PreWarm",
+            "Schedule": "cron(0 20 * * ? *)",
+            "Timezone": "America/Caracas",
+            "ScalableTargetAction": {
+              "MinCapacity": 2,
+              "MaxCapacity": 4
+            }
+          }
+        ]
+      }
+    }
+  }
+}

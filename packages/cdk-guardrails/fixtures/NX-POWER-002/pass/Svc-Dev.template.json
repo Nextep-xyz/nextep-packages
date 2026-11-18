@@ -1,0 +1,102 @@
+{
+  "Resources": {
+    "Api": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "DesiredCount": 1
+      }
+    },
+    "ApiTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MinCapacity": 0,
+        "MaxCapacity": 1,
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs",
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/demo-cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Api",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        },
+        "ScheduledActions": [
+          {
+            "ScheduledActionName": "PowerOn",
+            "Schedule": "cron(0 20 * * ? *)",
+            "Timezone": "America/Caracas",
+            "ScalableTargetAction": {
+              "MinCapacity": 1,
+              "MaxCapacity": 1
+            }
+          },
+          {
+            "ScheduledActionName": "PowerOff",
+            "Schedule": "cron(0 20 * * ? *)",
+            "Timezone": "America/Caracas",
+            "ScalableTargetAction": {
+              "MinCapacity": 0,
+              "MaxCapacity": 0
+            }
+          }
+        ]
+      }
+    },
+    "Cron": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "DesiredCount": 1
+      }
+    },
+    "CronTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MinCapacity": 1,
+        "MaxCapacity": 1,
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs",
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/demo-cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Cron",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        },
+        "ScheduledActions": [
+          {
+            "ScheduledActionName": "PowerOff",
+            "Schedule": "cron(0 20 * * ? *)",
+            "Timezone": "America/Caracas",
+            "ScalableTargetAction": {
+              "MinCapacity": 0,
+              "MaxCapacity": 0
+            }
+          }
+        ]
+      }
+    },
+    "Legacy": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "EC2",
+        "DesiredCount": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "/DemoDashboard-Dev": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/work/dashboard-app.js:8:15)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:templateFile",
+      "data": "DemoDashboard-Dev.template.json"
+    },
+    {
+      "type": "aws:cdk:stack-tags",
+      "data": [
+        {
+          "key": "Application",
+          "value": "Core"
+        },
+        {
+          "key": "Environment",
+          "value": "dev"
+        },
+        {
+          "key": "Project",
+          "value": "Demo"
+        }
+      ]
+    }
+  ],
+  "/DemoDashboard-Dev/Board": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Board"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/work/dashboard-app.js:10:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/DemoDashboard-Dev/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/DemoDashboard-Dev/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/DemoDashboard-Dev/Jobs/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "JobsDF1CC2D4"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Queue2 in aws-cdk-lib...",
+        "<anonymous> (/work/dashboard-app.js:9:1)",
+        "...node internals..."
+      ]
+    }
+  ]
+}

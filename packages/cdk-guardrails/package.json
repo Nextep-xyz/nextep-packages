@@ -1,0 +1,43 @@
+{
+  "name": "@nextep/cdk-guardrails",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Guardarrailes de costo y estandar para proyectos CDK de Nextep: un motor puro que evalua los templates sinterizados, con un plugin de policy validation, un helper de Jest y una CLI.",
+  "license": "UNLICENSED",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nextep-guardrails": "bin/nextep-guardrails.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "docs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": ">=2.275.0 <3",
+    "constructs": "^10.0.0"
+  },
+  "peerDependenciesMeta": {
+    "aws-cdk-lib": {
+      "optional": true
+    },
+    "constructs": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "aws-cdk-lib": "2.275.0",
+    "constructs": "10.8.1",
+    "typescript": "5.9.3"
+  }
+}

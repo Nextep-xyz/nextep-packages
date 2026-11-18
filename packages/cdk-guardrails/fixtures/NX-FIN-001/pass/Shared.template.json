@@ -1,0 +1,23 @@
+{
+  "Resources": {
+    "Repo": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "shared"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    }
+  }
+}

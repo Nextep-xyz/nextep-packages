@@ -1,0 +1,8 @@
+{
+  "Resources": {
+    "Alarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {}
+    }
+  }
+}

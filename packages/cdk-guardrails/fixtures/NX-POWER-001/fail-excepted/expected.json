@@ -1,0 +1,5 @@
+[
+  "Power-Prod/StopDatabase",
+  "Svc-Prod/Nightly",
+  "Svc-Prod/ScaleTarget"
+]

@@ -1,0 +1,41 @@
+{
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Application",
+            "Value": "Core"
+          },
+          {
+            "Key": "Environment",
+            "Value": "dev"
+          },
+          {
+            "Key": "Project",
+            "Value": "Demo"
+          }
+        ]
+      }
+    },
+    "Param": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Type": "String",
+        "Value": "x",
+        "Tags": {
+          "Application": "Core",
+          "Environment": "dev",
+          "Project": "Demo"
+        }
+      }
+    },
+    "Policy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "p"
+      }
+    }
+  }
+}
