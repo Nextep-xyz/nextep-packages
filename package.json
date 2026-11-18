@@ -1,0 +1,24 @@
+{
+  "name": "nextep-packages",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Public packages of Nextep for working with AWS the right way: CDK guardrails and the gates toolkit. Distributed as GitHub Release tarballs, never through an npm registry.",
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "jest --config jest.config.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "pack:package": "bash scripts/pack.sh"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "22.20.5",
+    "fast-glob": "3.3.3",
+    "jest": "30.5.2",
+    "ts-jest": "29.4.15",
+    "typescript": "5.9.3",
+    "yaml": "2.9.1"
+  }
+}

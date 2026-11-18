@@ -1,0 +1,11 @@
+node_modules/
+cdk.out/
+coverage/
+dist/
+release/
+*.tsbuildinfo
+.env
+.DS_Store
+
+# Fixtures reales de cdk.out de @nextep/cdk-guardrails (GR9): se versionan a propósito.
+!packages/cdk-guardrails/fixtures/*/cdk.out/
