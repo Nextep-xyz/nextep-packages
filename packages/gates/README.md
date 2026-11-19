@@ -31,3 +31,7 @@ expect(formatFindings(r.findings)).toBe('');
 ## Desarrollo
 
 `pnpm test` desde la raíz del repo. Dependencias de runtime: `fast-glob` y `yaml`.
+
+## Licencia
+
+[Apache-2.0](LICENSE): uso, modificación y redistribución libres. Se ofrece «tal cual», sin garantía; Nextep no responde por bugs ni retrasos que cause su uso. Sin derecho sobre el nombre ni las marcas de Nextep. Avisos en [NOTICE](NOTICE).

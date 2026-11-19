@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Guardarrailes de costo y estandar para proyectos CDK de Nextep: un motor puro que evalua los templates sinterizados, con un plugin de policy validation, un helper de Jest y una CLI.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -13,7 +13,9 @@
     "dist",
     "bin",
     "docs",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"

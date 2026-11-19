@@ -65,3 +65,7 @@ Excepciones: `docs/exceptions.md`. **No existe forma de desactivar una regla** s
 - `private: true` es **intencional y permanente**: el paquete se distribuye por Release, nunca por `npm publish`. `npm pack` y la instalación por URL funcionan igual.
 - `peerDependencies` (`aws-cdk-lib >=2.275.0 <3`, `constructs ^10`) y **ningún registry fijado en el manifiesto**: los gates GR6–GR8 (`governance/gates/guardrails-package.spec.ts` y `packages-shape.spec.ts`) lo hacen cumplir sobre el tarball real.
 - Límite de v1: los `cdk.out` con assemblies anidados (apps con `Stage`) no se evalúan; la CLI sale con código 2 en vez de pasar sin haberlos leído.
+
+## Licencia
+
+[Apache-2.0](LICENSE): uso, modificación y redistribución libres. Se ofrece «tal cual», sin garantía; Nextep no responde por bugs ni retrasos que cause su uso. Sin derecho sobre el nombre ni las marcas de Nextep. Avisos en [NOTICE](NOTICE).

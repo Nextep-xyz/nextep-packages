@@ -28,6 +28,16 @@ Las reglas de costo y estándar se reimplementan por proyecto y los gates de inv
 - Reglas nuevas de `cdk-guardrails` (familias de seguridad, red, identidad, alarmas): entran por spec con evidencia real, en `warn` (P3).
 - Migrar a los consumidores (P2): lo ejecuta cada repo consumidor, no este.
 
+### 1.4 Regla de admisión (qué puede vivir en este repo)
+
+El nombre `nextep-packages` es genérico a propósito (I1); lo que acota el alcance es esta regla, que decide **un humano** (un `CODEOWNERS` sobre `packages/`, **aún por crear junto con el ruleset de Q5**, porque «genérico» no es mecanizable). Un paquete entra solo si cumple **las tres**:
+
+1. **Es genérico:** sirve a cualquiera que trabaje con AWS (reglas, gates, y a futuro constructs genéricos como un apagado programado). No es el producto ni una ventaja competitiva.
+2. **No contiene nada interno** ni de un cliente: lo hace cumplir el gate G13, que corre sobre el paquete en cuanto aparece en disco.
+3. **Su difusión es irreversible y aceptable** (I5): se publica sabiendo que no se retira.
+
+**Fuera, por decisión (2026-11-19):** el construct L3 del contable white-label (`@nextep/accounting-cdk`) **no es público** y se queda en el repo de diseño privado, distribuido por CodeArtifact: codifica cómo corre el motor (propiedad intelectual de un producto que se vende por su auditabilidad) y el registry da la evidencia de qué cuenta descargó qué versión (spec `white-label-l3-construct` §3.5). Tampoco entra el catálogo de Legos (Q4). Lo privado va a un registry privado (R4).
+
 ---
 
 ## 2. Diseño
@@ -77,8 +87,8 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 | # | Guard | Test | Dónde |
 |---|---|---|---|
 | **G13** | Ningún archivo del repo lleva nombres internos (denylist), ID de cuenta de 12 dígitos, ARN con cuenta, correo fuera de `@example.*`, IP privada ni host fuera de la allowlist. En CI **falla si falta `INTERNAL_DENYLIST`** (salvo forks). Sin valores en la salida | `governance/gates/public-names.spec.ts` + `packages/gates/test/public-scan.spec.ts` | repo |
-| **G-PKG** | Todo `packages/*` (descubierto por disco, mínimo 2): nombre `@nextep/<dir>`, versión exacta, `private: true`, `license`, `description`, `engines.node`, `main`/`types`, `files` explícito, scripts `build`/`prepack`, `tsconfig.build.json`, `README.md`, sin `publishConfig`, sin dependencias `workspace:`/`file:`/flotantes, nombres únicos | `governance/gates/packages-shape.spec.ts` | repo |
-| **GR8** | El tarball **real** de cada paquete (`npm pack --dry-run` sobre una copia compilada) lleva `dist/`, `README.md` y los `bin`, **no** lleva `src/`, `test/`, `fixtures/` ni `node_modules/`, y su contenido no tiene cuentas, ARNs, endpoints de AWS ni `publishConfig` | `packages-shape.spec.ts` | repo |
+| **G-PKG** | Todo `packages/*` (descubierto por disco, mínimo 2): nombre `@nextep/<dir>`, versión exacta, `private: true`, `license: "Apache-2.0"`, `LICENSE` (texto canónico, sha256 fijado) y `NOTICE` en la raíz y copia idéntica en cada paquete (`npm pack` solo empaqueta el directorio del paquete), `description`, `engines.node`, `main`/`types`, `files` explícito, scripts `build`/`prepack`, `tsconfig.build.json`, `README.md`, sin `publishConfig`, sin dependencias `workspace:`/`file:`/flotantes, nombres únicos | `governance/gates/packages-shape.spec.ts` | repo |
+| **GR8** | El tarball **real** de cada paquete (`npm pack --dry-run` sobre una copia compilada) lleva `dist/`, `README.md`, `LICENSE`, `NOTICE` y los `bin`, **no** lleva `src/`, `test/`, `fixtures/` ni `node_modules/`, y su contenido no tiene cuentas, ARNs, endpoints de AWS ni `publishConfig` | `packages-shape.spec.ts` | repo |
 | **GR1** | Toda regla de `cdk-guardrails/src/rules` tiene id único, severidad, doc `docs/rules/<id>.md` y fixtures `fail` y `pass`; falla si descubre menos de 8 reglas o si una regla en disco no está registrada | `governance/gates/guardrails-rules.spec.ts` | repo |
 | **GR2/GR3** | Cada regla en rojo nombra stack y recurso; NX-POWER-001 no admite excepción, ni siquiera marcada | `packages/cdk-guardrails/test/fixtures.spec.ts` | paquete |
 | **GR4/GR5** | No existe forma de desactivar una regla (ni por `Validations.acknowledge`); las excepciones (marca sin entrada, entrada sin marca, vencida, sobre regla que no la admite) fallan nombrando el culpable | `gr4.spec.ts`, `exceptions.spec.ts` | paquete |
@@ -155,7 +165,7 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 | # | Pregunta | Bloquea | Propuesta |
 |---|---|---|---|
 | **Q1** | ¿Se reabre el nombre del reusable de publicación (hoy atado a CodeArtifact y a «aws») y se parte en dos: CI genérico y release por Release? | P1 | Sí: dos reusables sin «aws» en el nombre. Es seguro porque el actual no tiene release |
-| **Q2** | ¿Licencia? | Subir el repo | Sin licencia explícita (todos los derechos reservados) hasta decidir; `license: UNLICENSED` en los manifiestos |
+| **Q2** | **RESUELTA (Isaac, 2026-11-19): Apache-2.0.** ¿Licencia? Criterio: las reglas son públicas porque no comprometen nada, de libre uso y reimaginación (también comercial), sin responsabilidad para Nextep por bugs o retrasos de quien las use | — | Apache-2.0 sobre MIT: mismo descargo de garantía y de responsabilidad (cláusulas 7 y 8), más concesión de patentes y **sin derecho sobre el nombre ni las marcas** (cláusula 6), que protege `@nextep/*`. `LICENSE` canónico (sha256 fijado por el gate) + `NOTICE`, copiados a cada paquete. **Titular del copyright: «Nextep Innovation» (por confirmar el nombre legal exacto)** |
 | **Q3** | ¿Idioma de docs y mensajes de las reglas? Hoy español | Adopción externa | Español (consumidores internos); un i18n solo si aparece un consumidor externo |
 | **Q4** | ¿Se publica algún día el catálogo de módulos CDK del repo privado? | Nada | No ahora: son diseño propio, `experimental` y sin adoptante |
 | **Q5** | ¿Quién puede crear tags `*-v*`? | P1 | Solo mantenedores, con un ruleset de tags (paso manual en GitHub) |

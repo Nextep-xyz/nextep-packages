@@ -50,6 +50,8 @@ export const DEFAULT_ALLOWED_HOSTS: readonly string[] = [
   'npmjs\\.(com|org)',
   'nodejs\\.org',
   'json-schema\\.org',
+  // El texto de Apache-2.0 y sus cabeceras apuntan a apache.org: es la URL de la licencia, no un host interno.
+  '(www\\.)?apache\\.org',
   'localhost',
   '.*\\.example\\.[a-z]+',
   'example\\.[a-z]+',

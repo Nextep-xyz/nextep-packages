@@ -1,9 +1,10 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { discover, REPO_ROOT } from '@governance/gates/_discovery';
-import { binPaths, checkPackageShape, checkUniqueNames, PackageFacts, PackageManifest } from '@governance/lib/packages-shape';
+import { binPaths, checkLicenseFiles, checkPackageShape, checkUniqueNames, LICENSE_SHA256, PackageFacts, PackageManifest } from '@governance/lib/packages-shape';
 import { checkPublishConfig, checkTarballContents, checkTarballLayout } from '@governance/lib/guardrails-package';
 
 // Forma de TODO paquete de packages/* (descubierto por disco: un paquete nuevo queda sujeto con solo aparecer) y contenido de su tarball real.
@@ -17,7 +18,7 @@ const GOOD: PackageFacts = {
     name: '@nextep/demo',
     version: '0.1.0',
     private: true,
-    license: 'UNLICENSED',
+    license: 'Apache-2.0',
     description: 'demo',
     main: 'dist/index.js',
     types: 'dist/index.d.ts',
@@ -38,7 +39,8 @@ describe('forma de un paquete (unit): cada guard en rojo nombrando el archivo', 
     ['el directorio no coincide con el nombre', { name: '@nextep/otro' }, /el directorio \(demo\) debe coincidir/],
     ['version flotante', { version: '^0.1.0' }, /"version" debe ser semver exacto/],
     ['sin private: true (riesgo de npm publish)', { private: undefined }, /debe declarar "private": true/],
-    ['sin licencia', { license: undefined }, /falta "license"/],
+    ['sin licencia', { license: undefined }, /"license" debe ser "Apache-2.0"/],
+    ['licencia distinta (UNLICENSED)', { license: 'UNLICENSED' }, /"license" debe ser "Apache-2.0" \(es "UNLICENSED"\)/],
     ['con publishConfig', { publishConfig: { registry: 'https://x.example.com' } }, /"publishConfig" esta prohibido/],
     ['files comodin', { files: ['.'] }, /"files" no puede ser un comodin/],
     ['sin files', { files: undefined }, /"files" debe ser una lista explicita/],
@@ -58,6 +60,29 @@ describe('forma de un paquete (unit): cada guard en rojo nombrando el archivo', 
 
   it('dos paquetes con el mismo nombre', () => {
     expect(checkUniqueNames([GOOD, { ...GOOD, dir: 'packages/copia' }]).join('\n')).toMatch(/packages\/copia\/package\.json: el nombre @nextep\/demo ya lo usa packages\/demo/);
+  });
+
+  describe('LICENSE y NOTICE (checkLicenseFiles)', () => {
+    const NOTICE = 'x\nCopyright 2026 Titular\n';
+    const PKG = { dir: 'packages/demo', licenseSha: LICENSE_SHA256 as string | undefined, notice: NOTICE as string | undefined };
+    const ok = { rootLicenseSha: LICENSE_SHA256 as string | undefined, rootNotice: NOTICE as string | undefined, packages: [PKG] };
+
+    it('una configuracion correcta pasa', () => {
+      expect(checkLicenseFiles(ok)).toEqual([]);
+    });
+
+    it.each([
+      ['sin LICENSE en la raiz', { ...ok, rootLicenseSha: undefined }, /^LICENSE: falta en la raiz/],
+      ['LICENSE editado en la raiz', { ...ok, rootLicenseSha: 'abc' }, /LICENSE: no es el texto canonico de Apache-2\.0/],
+      ['sin NOTICE en la raiz', { ...ok, rootNotice: undefined }, /^NOTICE: falta en la raiz/],
+      ['NOTICE sin copyright', { ...ok, rootNotice: 'nada' }, /NOTICE: debe llevar una linea "Copyright/],
+      ['el paquete no lleva LICENSE', { ...ok, packages: [{ ...PKG, licenseSha: undefined }] }, /packages\/demo\/LICENSE: falta/],
+      ['el LICENSE del paquete difiere', { ...ok, packages: [{ ...PKG, licenseSha: 'otro' }] }, /packages\/demo\/LICENSE: difiere/],
+      ['el paquete no lleva NOTICE', { ...ok, packages: [{ ...PKG, notice: undefined }] }, /packages\/demo\/NOTICE: falta/],
+      ['el NOTICE del paquete difiere', { ...ok, packages: [{ ...PKG, notice: 'otro' }] }, /packages\/demo\/NOTICE: difiere/],
+    ])('%s', (_n, facts, expected) => {
+      expect(checkLicenseFiles(facts).join('\n')).toMatch(expected);
+    });
   });
 
   it('binPaths acepta string y mapa', () => {
@@ -89,6 +114,20 @@ describe('forma de los paquetes (descubrimiento por disco)', () => {
   it('los nombres son unicos', () => {
     expect(checkUniqueNames(facts)).toEqual([]);
   });
+
+  it('LICENSE y NOTICE: texto canonico en la raiz y copia identica en cada paquete', () => {
+    const read = (rel: string): Buffer | undefined => {
+      const abs = path.join(REPO_ROOT, rel);
+      return fs.existsSync(abs) ? fs.readFileSync(abs) : undefined;
+    };
+    const sha = (b: Buffer | undefined): string | undefined => (b ? crypto.createHash('sha256').update(b).digest('hex') : undefined);
+    const problems = checkLicenseFiles({
+      rootLicenseSha: sha(read('LICENSE')),
+      rootNotice: read('NOTICE')?.toString('utf8'),
+      packages: facts.map((f) => ({ dir: f.dir, licenseSha: sha(read(`${f.dir}/LICENSE`)), notice: read(`${f.dir}/NOTICE`)?.toString('utf8') })),
+    });
+    expect(problems).toEqual([]);
+  });
 });
 
 describe('GR8: el tarball REAL de cada paquete (npm pack --dry-run) no lleva cuentas, ARNs ni publishConfig', () => {
@@ -114,7 +153,7 @@ describe('GR8: el tarball REAL de cada paquete (npm pack --dry-run) no lleva cue
     const paths = (listing[0]?.files ?? []).map((x) => x.path);
     expect(paths.length).toBeGreaterThan(3);
 
-    const required = ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts', ...binPaths(f.manifest)];
+    const required = ['package.json', 'README.md', 'LICENSE', 'NOTICE', 'dist/index.js', 'dist/index.d.ts', ...binPaths(f.manifest)];
     expect(checkTarballLayout(paths, required, ['src/', 'test/', 'fixtures/', 'node_modules/'])).toEqual([]);
     const contents = paths.map((p) => ({ file: `${f.dir}: ${p}`, text: fs.readFileSync(path.join(work, p), 'utf8') }));
     expect(checkTarballContents(contents)).toEqual([]);

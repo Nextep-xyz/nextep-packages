@@ -56,6 +56,11 @@ describe('scanPublic: detectores genericos, cada uno en rojo nombrando archivo y
     expect(scanPublic({ root }).findings).toEqual([]);
   });
 
+  it('la URL de la licencia Apache-2.0 es un host permitido (el texto de la licencia y sus cabeceras la llevan)', () => {
+    const root = repo({ LICENSE: 'Apache License\n   http://www.apache.org/licenses/\n   http://www.apache.org/licenses/LICENSE-2.0\n' });
+    expect(scanPublic({ root }).findings).toEqual([]);
+  });
+
   it('allowedHosts propio reemplaza los defaults', () => {
     const root = repo({ 'a.md': `https://${DOCS_HOST}/x` });
     expect(detectors(root)).toHaveLength(1);

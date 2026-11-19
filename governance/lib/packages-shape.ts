@@ -22,6 +22,10 @@ export interface PackageManifest {
 }
 
 export const SCOPE = '@nextep/';
+/** Licencia de TODO el repo (decision de Q2): permisiva, con descargo de garantia y de responsabilidad, concesion de patentes y sin derecho sobre el nombre. */
+export const LICENSE_ID = 'Apache-2.0';
+/** sha256 del texto canonico de Apache-2.0 (el original de apache.org, 11358 bytes, LF). El texto legal no se edita: se reemplaza por el original. */
+export const LICENSE_SHA256 = 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30';
 const EXACT_VERSION = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
 const FLOATING = /^(\^|~|\*|latest|next|>|<)/;
 
@@ -51,7 +55,7 @@ export function checkPackageShape(p: PackageFacts): string[] {
   // Nada se publica en un registry de npm: se distribuye como tarball de un GitHub Release. `private: true` hace que un `npm publish`
   // accidental falle; `npm pack` y la instalacion por URL del tarball siguen funcionando.
   if (m.private !== true) out.push(`${at}: debe declarar "private": true (el paquete se distribuye por Release, nunca por npm publish)`);
-  if (!m.license) out.push(`${at}: falta "license" (UNLICENSED si no hay licencia explicita)`);
+  if (m.license !== LICENSE_ID) out.push(`${at}: "license" debe ser "${LICENSE_ID}" (es ${JSON.stringify(m.license)})`);
   if (!m.description) out.push(`${at}: falta "description"`);
   if (!m.engines?.node) out.push(`${at}: falta "engines.node"`);
   if (!m.main || !m.types) out.push(`${at}: faltan "main" y "types" (el consumidor usa el codigo compilado)`);
@@ -71,6 +75,33 @@ export function checkPackageShape(p: PackageFacts): string[] {
         out.push(`${at}: ${section}.${dep} = ${range}: version flotante; fija una version exacta`);
       }
     }
+  }
+  return out;
+}
+
+export interface LicenseFacts {
+  /** sha256 del LICENSE de la raiz (undefined si no existe). */
+  rootLicenseSha?: string;
+  /** Contenido del NOTICE de la raiz (undefined si no existe). */
+  rootNotice?: string;
+  packages: { dir: string; licenseSha?: string; notice?: string }[];
+}
+
+/**
+ * LICENSE y NOTICE: el de la raiz es el texto canonico; cada paquete lleva una copia identica en SU directorio, porque `npm pack` empaqueta solo
+ * el directorio del paquete (sin la copia, el tarball se distribuiria sin licencia).
+ */
+export function checkLicenseFiles(f: LicenseFacts): string[] {
+  const out: string[] = [];
+  if (!f.rootLicenseSha) out.push('LICENSE: falta en la raiz del repo');
+  else if (f.rootLicenseSha !== LICENSE_SHA256) out.push(`LICENSE: no es el texto canonico de ${LICENSE_ID} (sha256 distinto); no se edita: se reemplaza por el original de apache.org`);
+  if (!f.rootNotice) out.push('NOTICE: falta en la raiz del repo');
+  else if (!/Copyright \d{4} \S+/.test(f.rootNotice)) out.push('NOTICE: debe llevar una linea "Copyright <anio> <titular>"');
+  for (const p of f.packages) {
+    if (!p.licenseSha) out.push(`${p.dir}/LICENSE: falta (npm empaqueta solo el directorio del paquete)`);
+    else if (p.licenseSha !== f.rootLicenseSha) out.push(`${p.dir}/LICENSE: difiere del LICENSE de la raiz`);
+    if (p.notice === undefined) out.push(`${p.dir}/NOTICE: falta`);
+    else if (p.notice !== f.rootNotice) out.push(`${p.dir}/NOTICE: difiere del NOTICE de la raiz`);
   }
   return out;
 }

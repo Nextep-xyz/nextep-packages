@@ -18,6 +18,12 @@ No están en ningún registry de npm. Cada versión es un **Release de GitHub** 
 - **Las reglas se descubren por disco**: toda regla de `cdk-guardrails` tiene id único, documentación y fixtures `fail`/`pass` (`governance/gates/guardrails-rules.spec.ts`).
 - **Las excepciones se declaran dos veces** y caducan (`governance/gates/exceptions-hygiene.spec.ts`).
 
+## Licencia y uso
+
+[Apache-2.0](LICENSE). Son reglas de trabajo que nos sirven a nosotros y que no comprometen nada, así que son de **libre uso, modificación y redistribución**, incluso con fines comerciales: tómalas, adáptalas o reimagínalas en tus propias versiones.
+
+Se ofrecen **«tal cual», sin garantía de ningún tipo**. Nextep no responde por bugs, retrasos ni daños que su uso cause en tu desarrollo (cláusulas 7 y 8 de la licencia). La licencia **no** concede derecho a usar el nombre ni las marcas de Nextep (cláusula 6). Los avisos de copyright están en [NOTICE](NOTICE).
+
 ## Desarrollo
 
 ```powershell
