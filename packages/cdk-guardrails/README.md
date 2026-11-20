@@ -8,7 +8,7 @@ El paquete **no está en ningún registry de npm**: se distribuye como tarball a
 
 ```json
 "devDependencies": {
-  "@nextep/cdk-guardrails": "https://github.com/<org>/nextep-packages/releases/download/cdk-guardrails-v0.1.0/nextep-cdk-guardrails-0.1.0.tgz"
+  "@nextep/cdk-guardrails": "https://github.com/<org>/nextep-packages/releases/download/cdk-guardrails-v0.1.1/nextep-cdk-guardrails-0.1.1.tgz"
 }
 ```
 
