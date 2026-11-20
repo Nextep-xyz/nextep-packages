@@ -1,0 +1,40 @@
+{
+  "name": "@nextep/ecs-private-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Construct L3 de CDK para un servicio HTTP privado en un cluster ECS Fargate existente: Service Connect, clave de aplicacion generada, secretos solo por Secrets Manager, task role sin permisos y migracion al arrancar.",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": ">=2.275.0 <3",
+    "constructs": "^10.0.0"
+  },
+  "peerDependenciesMeta": {
+    "aws-cdk-lib": {
+      "optional": true
+    },
+    "constructs": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "aws-cdk-lib": "2.275.0",
+    "constructs": "10.8.1",
+    "typescript": "5.9.3"
+  }
+}
