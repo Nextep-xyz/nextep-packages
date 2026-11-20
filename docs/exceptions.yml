@@ -1,4 +1,9 @@
 # Excepciones declaradas del repositorio. Toda excepcion se declara DOS veces: una marca `nextep-exception: <ID>` en el codigo y una entrada aqui
 # con motivo (>= 10 caracteres), dueno y caducidad. El gate de higiene falla con marcas huerfanas, entradas obsoletas o vencidas.
 version: 1
-exceptions: []
+exceptions:
+  - id: EXC-ECS-MIGRATE-ON-START
+    guard: L6
+    reason: "PrivateEcsService corre la migracion en el entrypoint (migrate && exec start) y despliega con minimumHealthyPercent 0 y maximumPercent 100 para que nunca haya dos tasks migrando; el costo es un corte breve por deploy. Sustituto: una task one-off previa al servicio y una prueba de compatibilidad de migraciones N y N-1."
+    owner: "mantenedores de nextep-packages"
+    expires: "2026-12-31"
