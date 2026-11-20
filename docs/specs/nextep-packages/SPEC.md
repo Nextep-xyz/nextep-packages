@@ -1,6 +1,6 @@
 # Spec: `nextep-packages` — paquetes públicos de revisión estándar, distribuidos por Release
 
-- **Estado:** **P0 ejecutada el 2026-11-18** (repo local creado, sin push). El alcance lo fijó el responsable del repo por instrucción directa («el primer lote son los paquetes, crea el repo local, hazlo de forma autónoma y ponle los guards de público de la plataforma»); **este spec se redactó y ejecutó en la misma sesión: requiere su revisión a posteriori** (§7). Siguiente: P1 (reusable de release en la plataforma) y P2 (migrar a los consumidores).
+- **Estado:** **P0 ejecutada el 2026-11-18** y **P1, lado consumidor, ejecutada el 2026-11-20** (rama `chore/instalar-cicd-de-la-plataforma`: callers + gates GR14 y G-INT; el PR y el primer run en GitHub: ver §8). El alcance lo fijó el responsable del repo por instrucción directa («el primer lote son los paquetes, crea el repo local, hazlo de forma autónoma y ponle los guards de público de la plataforma»); **este spec se redactó y ejecutó en la misma sesión: requiere su revisión a posteriori** (§7). Siguiente: P2 (migrar a los consumidores), que necesita un Release real de cada paquete.
 - **Origen:** el spec privado de `cdk-guardrails` (repo de diseño de Nextep) construyó el paquete y planeó distribuirlo por un registry privado. Se descartó: un registry privado exige credencial en cada máquina de desarrollo (el token de CodeArtifact dura como máximo 12 h) y no existe forma de que la pertenencia a una organización de GitHub sea una credencial local. Como los paquetes solo codifican formas correctas de trabajar con AWS y no contienen nada sensible, la fricción cero se consigue haciéndolos **públicos**.
 - **Categoría:** plataforma / DevSecOps. **Idioma de docs y mensajes:** español (ver Q3).
 
@@ -95,7 +95,8 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 | **GR6/GR7** | El motor no usa red, `eval`, `Function` ni procesos hijos; cero `dependencies` de runtime; `aws-cdk-lib` y `constructs` solo como `peerDependencies` | `governance/gates/guardrails-package.spec.ts` | repo |
 | **GR9** | La CLI evalúa el `cdk.out` real: un proyecto sin plugin ni helper, con un `Dashboard`, falla | `packages/cdk-guardrails/test/cli.spec.ts` | paquete |
 | **G-EXC** | Las excepciones del repo se declaran dos veces (marca `nextep-exception: ID` + entrada con motivo, dueño y caducidad); falla con marca huérfana, entrada obsoleta o vencida | `governance/gates/exceptions-hygiene.spec.ts` | repo |
-| **G-INT** | Un tarball alterado falla el install de un consumidor | Spike §8 (manual). **Pendiente convertirlo en test** (P1) | — |
+| **GR14** | Todo `.github/workflows/*.yml` (descubierto por disco, mínimo 3) es un **caller** de la plataforma: `uses:` por tag **exacto** `vX.Y.Z` (no `@main`, ramas, SHAs ni el alias `@v1`); sin `pull_request_target` ni `secrets: inherit`; el caller de CI pide exactamente `contents: read`; un caller de release dispara **solo** por `push.tags` (el patrón cubre su `tag-prefix`), pide `contents: write` y nada más (jamás `id-token`). Completitud: cada `packages/*` tiene **exactamente un** caller de release con `tag-prefix: <dir>-v` y `package-dir: packages/<dir>`; un paquete nuevo sin caller falla el build. Los mensajes llevan `<archivo>:<línea>` | `governance/gates/workflow-callers.spec.ts` | repo |
+| **G-INT** | Un tarball alterado falla el install de un consumidor: `scripts/pack.sh` real → instalar por URL (servidor local que imita el 302 de los assets, registry muerto) → el lockfile graba el `integrity` sha512 de esos bytes y la URL → asset alterado + store limpio → `ERR_PNPM_TARBALL_INTEGRITY` → control con los bytes originales. Falla (no se salta) si no hay pnpm o bash. **Límite:** el sujeto es todo paquete **sin `dependencies` de runtime** (hoy `@nextep/cdk-guardrails`; `@nextep/gates` las tiene y obligaría a hablar con un registry), mínimo 1 | `governance/gates/tarball-integrity.spec.ts` | repo |
 
 ---
 
@@ -107,10 +108,11 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 - **Hecho:** estructura, `@nextep/gates`, `@nextep/cdk-guardrails` limpiado y sin historial, G13, G-PKG, GR1–GR9, G-EXC, `scripts/pack.sh`, `AGENTS.md`, este spec. **Sin push.**
 - **Aceptación (cumplida):** `pnpm test` verde con `INTERNAL_DENYLIST` activa; `pnpm typecheck` limpio; cada gate nuevo verificado en rojo.
 
-### P1 — Release por reusable de la plataforma
+### P1 — Release por reusable de la plataforma *(lado consumidor HECHO 2026-11-20; la plataforma, ya liberada en `v1.5.1`)*
 - **Objetivo:** que un tag `<paquete>-vX.Y.Z` produzca el Release con el `.tgz` y el `.sha256`, y que el repo tenga CI que bloquee el merge. **Dependencias:** P0 subida a GitHub como repo público; secreto de organización `INTERNAL_DENYLIST`; Q1.
 - **Toca (en `nextep-platform-workflows`, sesión aparte, repo público: nada interno):** un reusable de CI genérico sin AWS (instalar, `pnpm test`, `pnpm typecheck`, pasando `INTERNAL_DENYLIST` y `GATE_FORK_PR`) y un reusable de release (§6). **Toca (aquí):** los callers de pocas líneas, por tag, sin ARN ni secreto literal. **No toca:** los dos workflows AWS existentes.
 - **Pruebas:** en la plataforma, bats con `gh`/`npm` falsos (tag ⇔ `version`, asset con el nombre esperado, no se reescribe un Release existente) y los gates de permisos mínimos y acciones por SHA. Aquí: gate GR14 (todo caller usa un tag de la plataforma, no `@main`) y **G-INT como test**.
+- **Estado real:** los dos reusables existen en la plataforma y están en su tag `v1.5.1`: `lego-node-ci` (job `ci`) y `lego-package-release` (jobs `gate` y `release`). Aquí: `.github/workflows/ci.yml`, `release-gates.yml` y `release-cdk-guardrails.yml` (fijados a `@v1.5.1`), GR14 y G-INT como test. **Pendiente de un humano:** el secreto `INTERNAL_DENYLIST` y los rulesets (§6.4); **pendiente de un Release real:** lo que §8 lista como no verificado.
 - **Aceptación:** el CI es *required status check*; un tag de prueba produce un Release descargable desde una URL pública y `pnpm install` del tarball falla si se altera. **Rollback:** no liberar el tag del reusable; un Release publicado no se reescribe (se corrige con el siguiente patch).
 
 ### P2 — Migrar a los consumidores
@@ -150,13 +152,14 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 
 ---
 
-## 6. Brechas de plataforma (lo que hay que **pedir**, no construir aquí)
+## 6. Brechas de plataforma (lo que había que **pedir**, no construir aquí)
 
-`AGENTS.md`: los pipelines no se escriben en un repo de proyecto ni se copia YAML de otro repo. Falta:
+`AGENTS.md`: los pipelines no se escriben en un repo de proyecto ni se copia YAML de otro repo. Estado:
 
-1. **Reusable de CI genérico sin AWS** (instalar, test, typecheck, pasando `INTERNAL_DENYLIST` y `GATE_FORK_PR`). `lego-aws-cicd` está pensado para flujos de despliegue con `compute`.
-2. **Reusable de release de paquete por GitHub Release** (no AWS): valida que el tag ⇔ `version` y el prefijo, corre tests, empaqueta, revisa el contenido, adjunta el `.tgz` y el `.sha256` con `GITHUB_TOKEN` (`contents: write`, sin credenciales cloud), no reescribe un Release existente y verifica la descarga. El nombre actual `lego-aws-package-publish` (CodeArtifact) **no encaja**: reabrir Q1 antes de liberar un tag.
-3. **Procedimiento manual provisional hasta P1** (lo ejecuta un humano; el primer Release no tiene por qué esperar): en PowerShell, `pnpm install`, `pnpm test`, `bash scripts/pack.sh packages/<paquete>`, `gh release create <paquete>-vX.Y.Z release/<archivos>`. **Caduca al liberar P1.**
+1. **CERRADA — reusable de CI genérico sin AWS:** `lego-node-ci` (plataforma `v1.5.1`, runbook §9.1). Pasa `INTERNAL_DENYLIST` por nombre y deriva `GATE_FORK_PR` del evento.
+2. **CERRADA — reusable de release de paquete por GitHub Release (no AWS):** `lego-package-release` (plataforma `v1.5.1`, runbook §9.2): valida tag ⇔ `version` y prefijo, corre tests, un solo `npm pack`, revisa **ese** tarball, publica `.tgz` + `.sha256` con el `GITHUB_TOKEN` del run (`contents: write` solo en el job `release`), no reescribe un Release existente y vuelve a descargar los assets para comparar el digest. El nombre `lego-aws-package-publish` (CodeArtifact) no se tocó (Q1).
+3. **CADUCADO — procedimiento manual provisional** (`gh release create` a mano). Ya no es el camino: el Release lo crea el workflow al empujar el tag (README, «Cómo se libera»). No lo uses; si el reusable falla, se arregla en la plataforma y se libera de nuevo, no se publica a mano.
+4. **Lo que NO está en código y decide un humano (la plataforma no puede):** el secreto de organización `INTERNAL_DENYLIST`; un **ruleset de tags** (`*-v*`: solo mantenedores los crean, nadie mueve ni borra uno: Q5); un **ruleset de `main`** que exija el PR y el check `checks / ci` (sin él, el CI corre y no bloquea nada); y el `CODEOWNERS` de `packages/` (§1.4).
 
 ---
 
@@ -164,7 +167,7 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 
 | # | Pregunta | Bloquea | Propuesta |
 |---|---|---|---|
-| **Q1** | ¿Se reabre el nombre del reusable de publicación (hoy atado a CodeArtifact y a «aws») y se parte en dos: CI genérico y release por Release? | P1 | Sí: dos reusables sin «aws» en el nombre. Es seguro porque el actual no tiene release |
+| **Q1** | **RESUELTA (2026-11-20): dos reusables sin «aws» en el nombre, `lego-node-ci` y `lego-package-release`.** ¿Se reabre el nombre del reusable de publicación (hoy atado a CodeArtifact y a «aws») y se parte en dos: CI genérico y release por Release? | — | Hecho en la plataforma (`v1.5.1`); `lego-aws-package-publish` queda para CodeArtifact |
 | **Q2** | **RESUELTA (Isaac, 2026-11-19): Apache-2.0.** ¿Licencia? Criterio: las reglas son públicas porque no comprometen nada, de libre uso y reimaginación (también comercial), sin responsabilidad para Nextep por bugs o retrasos de quien las use | — | Apache-2.0 sobre MIT: mismo descargo de garantía y de responsabilidad (cláusulas 7 y 8), más concesión de patentes y **sin derecho sobre el nombre ni las marcas** (cláusula 6), que protege `@nextep/*`. `LICENSE` canónico (sha256 fijado por el gate) + `NOTICE`, copiados a cada paquete. **Titular del copyright: «Nextep Innovation» (por confirmar el nombre legal exacto)** |
 | **Q3** | ¿Idioma de docs y mensajes de las reglas? Hoy español | Adopción externa | Español (consumidores internos); un i18n solo si aparece un consumidor externo |
 | **Q4** | ¿Se publica algún día el catálogo de módulos CDK del repo privado? | Nada | No ahora: son diseño propio, `experimental` y sin adoptante |
@@ -175,12 +178,28 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 
 ## 8. Estado y retoma
 
+### P1, lado consumidor (2026-11-20, rama `chore/instalar-cicd-de-la-plataforma`)
+
+- **Hecho:**
+  - `.github/workflows/ci.yml` (job `checks` → check requerido **`checks / ci`**; `on: pull_request` y `push` a `main`; `contents: read`; `INTERNAL_DENYLIST` por nombre), `release-gates.yml` y `release-cdk-guardrails.yml` (solo `push.tags` `gates-v*` / `cdk-guardrails-v*`; `contents: write` y nada más). Los tres llaman a la plataforma por **tag exacto** `@v1.5.1`, no por el alias `@v1`: este repo distribuye código y un cambio de la plataforma no debe alterar su release sin pasar por revisión.
+  - GR14 (`workflow-callers.spec.ts`) y G-INT como test (`tarball-integrity.spec.ts`), §3.
+- **Verificado en local (comando y salida real):**
+  - `pnpm test` → `Test Suites: 18 passed, 18 total`, `Tests: 328 passed, 328 total`; `pnpm typecheck` limpio. **También en Linux** (WSL, copia nativa sin `node_modules` de Windows, `pnpm install --frozen-lockfile`): las mismas 18 suites / 328 tests, G-INT incluido.
+  - `actionlint 1.7.12` sobre los tres workflows: `Found 0 errors in 3 files`; `shellcheck 0.11.0` sobre `scripts/pack.sh`: limpio. (Binarios bajados de sus releases oficiales y comprobados contra el digest sha256 publicado.)
+  - **GR14 en rojo sobre los archivos reales**, nombrando archivo y línea: `ci.yml` con `@main` → `.github/workflows/ci.yml:14: "…lego-node-ci.yml@main" no esta fijado por un tag EXACTO vX.Y.Z`; `secrets: inherit` → `ci.yml:18: secrets: inherit esta prohibido`; un `packages/zzdemo` sin caller → `packages/zzdemo: sin caller de release en .github/workflows/`; `workflow_dispatch` + `id-token` en `release-gates.yml` → `:15: … pide id-token` y `:10: … dispara por workflow_dispatch`.
+  - **G-INT en rojo:** sin pnpm en el `PATH` → falla (`tool: "pnpm"`), no se salta; con una «alteración» que no cambia ningún byte → `Expected: not 0` (el install no falló).
+  - **El gate G13 cazó un defecto del propio test nuevo** (URLs de loopback escritas como literal → `URL host outside the public allowlist`); ahora se arman en tiempo de ejecución.
+- **No verificado hasta el primer run en GitHub y un Release real** (runbook de la plataforma §9.5): ver el reporte de la fase 5 cuando exista. `upload/download-artifact` y `gh release create --verify-tag` solo se verifican con un Release real, que esta fase tiene **prohibido** crear.
+- **Brecha en la plataforma:** el título de su runbook §9 sigue diciendo «not released yet» aunque `v1.5.1` ya contiene los dos reusables; se corrige allá, en otro PR.
+- **Prompt de retoma (P2, un repo consumidor por sesión):** *«Repo consumidor. Lee `nextep-packages/docs/specs/nextep-packages/SPEC.md` §2.1, §4 P2 y §8. Precondición: existen los Releases `gates-v0.1.0` y `cdk-guardrails-v0.1.0` (los crea un mantenedor empujando el tag; no los crees tú). Cambia la dependencia a la URL exacta del Release (`https://github.com/<org>/nextep-packages/releases/download/<paquete>-vX.Y.Z/nextep-<paquete>-X.Y.Z.tgz`), sin rangos; retira la copia local del paquete; el gate de versión fija acepta la URL con versión exacta y rechaza rangos. Aceptación: suite verde y `pnpm install --frozen-lockfile` en un clon limpio, en Windows y Linux. No toques `nextep-packages`. Reporta Hecho / Verificado / No verificado / Brechas.»*
+
+### P0 (2026-11-18)
+
 - **Hecho (P0, 2026-11-18):** ver §4. 16 suites / 283 tests verdes con una denylist de 26 nombres activa; `pnpm typecheck` limpio.
 - **Verificado (comando y salida real):**
   - `pnpm test` → `Test Suites: 16 passed, 16 total`, `Tests: 283 passed, 283 total` (con `INTERNAL_DENYLIST` definida).
   - **Gates en rojo**, cada uno nombrando al culpable: G13 con un archivo que mezcla un nombre interno, un ID de 12 dígitos, un correo, una IP privada y un host ajeno → `docs/leak.md:1: 12-digit cloud account id` / `:1: internal name from INTERNAL_DENYLIST` / `:2: email address` / `:2: private IP address` / `:3: URL host outside the public allowlist`; G-PKG con un paquete **nuevo** descubierto por disco → `packages/zzdemo/package.json: debe declarar "private": true…` y `packages/zzdemo/README.md: falta`; GR1 sin `docs/rules/NX-COST-002.md` → `NX-COST-002: falta docs/rules/NX-COST-002.md`; G-EXC con una marca huérfana → `packages/gates/src/index.ts: marca nextep-exception "EXC-HUERFANA" sin entrada en docs/exceptions.yml`.
   - **El gate público cazó fugas reales de la copia:** trazas con la ruta local del usuario de Windows dentro de `fixtures/dashboard/cdk.out/*.metadata.json` (normalizadas) y cuentas/hosts literales en los tests (ahora se arman en tiempo de ejecución).
   - **Spike de instalación por URL** (servidor local que imita el 302 de los assets de GitHub): `pnpm install` desde `http://localhost/download/<archivo>.tgz` sigue la redirección, escribe `resolution: {integrity: sha512-…, tarball: <url>}` en el lockfile, el bin `nextep-guardrails --list-rules` corre, y `pnpm install --frozen-lockfile` en un clon limpio instala. Con el tarball **alterado** y un store nuevo: `WARN GET … error (ERR_PNPM_TARBALL_INTEGRITY)`.
-- **No verificado:** (a) la descarga real desde `github.com` y su redirección a `objects.githubusercontent.com` (solo se imitó en local); (b) Linux (solo se corrió en Windows; `scripts/pack.sh` y los gates usan rutas POSIX pero no se ejecutaron allí); (c) npm y yarn como consumidores (solo pnpm); (d) Renovate sobre URLs de tarball; (e) el CI (no existe, §6); (f) que `.tgz` en Releases no esté limitado por tamaño o por cuota (los dos tarballs pesan 29 kB y 7 kB).
-- **Pendiente:** P1, P2, P3, P4; Q1–Q6; el primer push lo hace el responsable del repo.
-- **Prompt de retoma (P1, en `nextep-platform-workflows`):** *«Repo PÚBLICO: nada interno. Lee `AGENTS.md`, `SPEC.md` §0 y §10 y `docs/runbook.md`. Diseño (de un spec público `nextep-packages/docs/specs/nextep-packages/SPEC.md` §6): crea DOS reusables sin AWS: (1) CI genérico de un repo Node con pnpm (install inmutable, `pnpm test`, `pnpm typecheck`, input opcional para pasar el secreto `INTERNAL_DENYLIST` como `env:` del paso y `GATE_FORK_PR`); (2) release de paquete por GitHub Release (`package-dir`, `tag-prefix`): valida tag ⇔ `version` y prefijo, corre tests, `npm pack`, revisa el contenido (sin `publishConfig`, sin IDs de cuenta de 12 dígitos), adjunta `.tgz` + `.sha256` con `GITHUB_TOKEN` (`contents: write` solo en el job de release), falla si el Release ya existe y verifica la descarga. Contrato primero, bats con `gh` y `npm` falsos, gates por disco en rojo primero, acciones de terceros por SHA, ningún `${{ inputs.* }}` en `run:`. Release aditivo lo crea solo `release.yml`: para al dejar el PR listo. Reporta Hecho / Verificado / No verificado / Brechas.»*
+- **No verificado:** (a) la descarga real desde `github.com` y su redirección a `objects.githubusercontent.com` (solo se imitó en local); (b) ~~Linux~~ **verificado en P1** (suite completa en WSL, ver arriba); (c) npm y yarn como consumidores (solo pnpm); (d) Renovate sobre URLs de tarball; (e) ~~el CI~~ **existe desde P1** (ver arriba); (f) que `.tgz` en Releases no esté limitado por tamaño o por cuota (los dos tarballs pesan 29 kB y 7 kB).
+- **Pendiente (tras P0):** P2, P3, P4; Q2–Q6 (Q1 resuelta en P1).
