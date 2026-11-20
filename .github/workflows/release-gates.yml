@@ -1,0 +1,17 @@
+# Release of @nextep/gates: the push of a tag `gates-vX.Y.Z` that equals the `version` of its package.json creates the GitHub Release
+# with the tarball and its .sha256. Fires ONLY on tags (the ruleset of tags decides who can push one); never create or move a tag by hand
+# outside that procedure. A published Release is never rewritten: a defect is fixed with the next patch.
+# `contents: write` and nothing else (no id-token): no cloud, no registry, no token of our own.
+# Pinned by EXACT tag (not the `v1` alias): gate GR14.
+name: release-gates
+on:
+  push:
+    tags: ["gates-v*"]
+jobs:
+  release-gates:
+    permissions:
+      contents: write
+    uses: Nextep-xyz/nextep-platform-workflows/.github/workflows/lego-package-release.yml@v1.5.1
+    with:
+      package-dir: packages/gates
+      tag-prefix: gates-v
