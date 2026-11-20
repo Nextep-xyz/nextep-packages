@@ -1,0 +1,19 @@
+# CI of the repository. A caller of a few lines: the logic lives in the platform workflow (never copy it here).
+# The job id (`checks`) and the job name of the workflow (`ci`) form the required status check `checks / ci`: do not rename either.
+# Never `pull_request_target`: this runs the code of the pull request.
+# Pinned by EXACT tag (not the `v1` alias): this repository distributes code, and a platform change must not alter it without a review (gate GR14).
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  checks:
+    permissions:
+      contents: read
+    uses: Nextep-xyz/nextep-platform-workflows/.github/workflows/lego-node-ci.yml@v1.5.1
+    with:
+      node-version: "22"
+    # Named, never `inherit`. A fork pull request receives no secrets: the workflow derives GATE_FORK_PR from the event.
+    secrets:
+      INTERNAL_DENYLIST: ${{ secrets.INTERNAL_DENYLIST }}
