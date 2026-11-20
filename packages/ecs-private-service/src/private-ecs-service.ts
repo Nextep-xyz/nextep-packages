@@ -193,7 +193,9 @@ export class PrivateEcsService extends Construct {
       propagateTags: ecs.PropagatedTagSource.SERVICE,
       serviceConnectConfiguration: {
         namespace: props.serviceConnect.namespace,
-        services: [{ portMappingName: 'http', dnsName: this.dnsName, port }],
+        // `discoveryName` explicito: por defecto toma el nombre del puerto (`http`) y dos servicios del mismo namespace que
+        // llamen `http` a su puerto chocan al crear el segundo ("SC service is already used by ...namespace/...").
+        services: [{ portMappingName: 'http', discoveryName: this.dnsName, dnsName: this.dnsName, port }],
         logDriver: ecs.LogDrivers.awsLogs({ logGroup, streamPrefix: 'service-connect' }),
       },
     });

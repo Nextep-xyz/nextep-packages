@@ -1,6 +1,6 @@
 {
   "name": "@nextep/ecs-private-service",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Construct L3 de CDK para un servicio HTTP privado en un cluster ECS Fargate existente: Service Connect, clave de aplicacion generada, secretos solo por Secrets Manager, task role sin permisos y migracion al arrancar.",
   "license": "Apache-2.0",

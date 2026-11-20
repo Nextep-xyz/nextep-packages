@@ -379,6 +379,7 @@
                   "Port": 8000
                 }
               ],
+              "DiscoveryName": "demo-engine",
               "PortName": "http"
             }
           ]

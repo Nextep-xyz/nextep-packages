@@ -267,9 +267,22 @@ describe('L8: Service Connect', () => {
       ServiceConnectConfiguration: Match.objectLike({
         Enabled: true,
         Namespace: NAMESPACE,
-        Services: [{ PortName: 'http', ClientAliases: [{ DnsName: 'demo-engine', Port: 8000 }] }],
+        Services: [{ PortName: 'http', DiscoveryName: 'demo-engine', ClientAliases: [{ DnsName: 'demo-engine', Port: 8000 }] }],
       }),
     });
+  });
+
+  it('el nombre de descubrimiento es propio del servicio y NO el nombre del puerto: dos servicios con puerto `http` no chocan en el namespace', () => {
+    // Regresion de un deploy real: sin `DiscoveryName` explicito, ECS usa el nombre del puerto (`http`) y el segundo servicio del
+    // namespace falla con "SC service is already used by ...".
+    const discovery = (t: Template) =>
+      Object.values(t.findResources('AWS::ECS::Service'))
+        .flatMap((r) => (r.Properties as { ServiceConnectConfiguration: { Services: { DiscoveryName?: string }[] } }).ServiceConnectConfiguration.Services)
+        .map((s) => s.DiscoveryName);
+    expect(discovery(template)).toEqual(['demo-engine']);
+    expect(discovery(template)).not.toContain('http');
+    const other = build({ serviceName: 'other-engine', serviceConnect: { namespace: NAMESPACE } });
+    expect(discovery(other.template)).toEqual(['other-engine']);
   });
 
   it('el puerto del contenedor se llama `http` con appProtocol http', () => {
