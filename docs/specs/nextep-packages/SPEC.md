@@ -17,6 +17,7 @@ Las reglas de costo y estándar se reimplementan por proyecto y los gates de inv
 - Un monorepo **público** `nextep-packages` con dos paquetes:
   - `@nextep/cdk-guardrails`: motor puro + plugin de policy validation de CDK + helper de Jest + CLI, con 8 reglas de costo y estándar (extraído del repo privado, **sin historial** y **limpiado**).
   - `@nextep/gates`: `discover` (por disco, falla sin sujetos), higiene de excepciones declaradas dos veces con caducidad, y `scanPublic` (los detectores del gate G13 de `nextep-platform-workflows`).
+- **A partir de P5 (borrador):** un tercer paquete, `@nextep/ecs-private-service`, construct L3 de CDK **genérico** (sin dependencias de runtime; `aws-cdk-lib` y `constructs` como `peerDependencies`).
 - Los **guards de repo público** (los mismos de la plataforma) y los guards de forma de paquete, todos como tests que bloquean el build.
 - La **distribución**: tarball `npm pack` adjunto a un Release de GitHub (`<paquete>-vX.Y.Z`) con su `.sha256`, instalado por URL con versión exacta.
 
@@ -36,7 +37,7 @@ El nombre `nextep-packages` es genérico a propósito (I1); lo que acota el alca
 2. **No contiene nada interno** ni de un cliente: lo hace cumplir el gate G13, que corre sobre el paquete en cuanto aparece en disco.
 3. **Su difusión es irreversible y aceptable** (I5): se publica sabiendo que no se retira.
 
-**Fuera, por decisión (2026-11-19):** el construct L3 del contable white-label (`@nextep/accounting-cdk`) **no es público** y se queda en el repo de diseño privado, distribuido por CodeArtifact: codifica cómo corre el motor (propiedad intelectual de un producto que se vende por su auditabilidad) y el registry da la evidencia de qué cuenta descargó qué versión (spec `white-label-l3-construct` §3.5). Tampoco entra el catálogo de Legos (Q4). Lo privado va a un registry privado (R4).
+**Entra, por decisión (2026-11-20, revierte la del 2026-11-19):** un construct L3 **genérico**, `@nextep/ecs-private-service` (servicio ECS Fargate privado con Service Connect, migración al arrancar y clave de aplicación generada; contrato en P5). La decisión anterior lo dejaba privado y distribuido por un registry privado. Se revierte porque el construct es solo CDK: **el producto que corre dentro es una imagen de un registry privado y no vive aquí**, el construct la referencia por URI y digest y sin ella no vale nada; la evidencia de qué cuenta usó qué versión pasa al pull de la imagen por digest; y el registry privado no existe aún ni es el camino crítico. **Condiciones:** nombre y props genéricos, **sin** nombres de producto, cliente ni organización (G13 lo hace cumplir), y difusión irreversible aceptada (I5). **Siguen fuera:** el catálogo de Legos (Q4) y todo construct o paquete que contenga lógica de un producto: eso va a un registry privado (R4).
 
 ---
 
@@ -119,6 +120,39 @@ Los gates del repo se escriben **con `@nextep/gates`**: el repo consume su propi
 - **Objetivo:** el repo privado de diseño y los proyectos consumen el paquete por URL y se borran las copias. **Dependencias:** P1 con un Release real de `cdk-guardrails-v0.1.0` y de `gates`.
 - **Toca (cada repo consumidor, en su propia sesión):** la dependencia pasa de workspace/tarball local a la URL exacta; se retira `packages/cdk-guardrails` del repo privado; el gate de versión fija (GR11) acepta la URL con versión exacta y rechaza rangos. **No toca:** este repo.
 - **Aceptación:** la suite de cada consumidor verde con la dependencia por URL; `pnpm install --frozen-lockfile` en un clon limpio, en Windows y Linux.
+
+### P5 — `@nextep/ecs-private-service`: construct L3 genérico *(BORRADOR 2026-11-20, pendiente de aprobación; no implementar hasta entonces)*
+
+- **Objetivo:** un `Construct` que instala, en un cluster ECS existente, un servicio HTTP **privado** con su base de datos y su clave de aplicación, de modo que el repo consumidor solo lo instancie con sus props. **Dependencias:** P1 (release por reusable) y que la imagen del servicio ya exista en un registry (el construct **no** la construye ni la publica).
+- **Toca:** `packages/ecs-private-service/**`, `.github/workflows/release-ecs-private-service.yml` (caller, `tag-prefix: ecs-private-service-v`, `package-dir: packages/ecs-private-service`, plataforma por tag **exacto** como los otros), `docs/exceptions.yml` (excepción A1, abajo). **No toca:** los otros paquetes ni los gates del repo: G13, G-PKG, GR8, GR14 y G-INT se aplican solos porque el paquete aparece en disco.
+- **Contrato (props; todo `readonly`):**
+  - `cluster: ecs.ICluster`, `vpc: ec2.IVpc`, `serviceName: string` (`^[a-z][a-z0-9-]{1,30}$`).
+  - `image: { repository: ecr.IRepository; version: string; digest: string }` — `version` semver exacto, `digest` `sha256:[0-9a-f]{64}`. La imagen se referencia como `<repositoryUri>@<digest>` (`ContainerImage.fromRegistry`, no `fromEcrRepository`, que solo acepta tag) y el construct concede el pull al execution role.
+  - `databaseUrlSecret: secretsmanager.ISecret` y `databaseUrlField?` (por defecto `url`): el campo es la **URL de conexión completa**. El construct **no** conoce el schema ni crea roles: el rol de base de datos lo aprovisiona el consumidor y fija su schema por `search_path`.
+  - `serviceConnect: { namespace: string; dnsName?: string }` (el namespace se pasa explícito porque un cluster importado no lo trae).
+  - `ingressFrom: ec2.ISecurityGroup[]` (**al menos uno**) y `extraSecurityGroups?` (p. ej. el de acceso a la base).
+  - `appKey: { applicationId: string }` (`^[A-Z][A-Z0-9_-]{0,63}$`): se genera un secreto `{"<applicationId>": "<clave>"}` (`SecretStringGenerator`, plantilla `{}`, `generateStringKey: applicationId`, ≥ 32 caracteres, sin puntuación).
+  - `environment: 'development' | 'staging' | 'production'`; `port?` (8000); `healthCheckPath?` (`/api/v1/health`); `migrateCommand?` (`alembic upgrade head`); `startCommand?` (`uvicorn app.main:app --host 0.0.0.0 --port 8000`); `sizing?` (`cpu`, `memoryMiB`, `startPeriodSeconds`, este último por defecto 180); `logRetention?`; `alarmTopic?`; `extraEnvVars?` (solo no secretas); `removalPolicy?`.
+- **Qué crea:** task definition Fargate X86_64 y servicio (subred privada, sin IP pública, circuit breaker con rollback); SG propio con ingress solo desde `ingressFrom` y solo al puerto; log group con retención; el secreto de clave; alarmas de CPU y memoria si hay `alarmTopic`; Service Connect (servidor, `appProtocol http`). **Variables:** `ENVIRONMENT`, `ENGINE_VERSION`, `IMAGE_DIGEST`, `PYTHONDONTWRITEBYTECODE=1`; **secretos** (nunca en `environment`): `DATABASE_URL` (del campo `url`) y `EMBEDDED_APPLICATIONS` (el secreto de clave **entero**, que ya es el JSON `{id: clave}`). **IAM:** task role **sin statements** (el servicio no llama a AWS); el execution role solo lee esos secretos y hace el pull. **Salidas:** `service`, `securityGroup`, `taskRole`, `appKeySecret`, `endpointUrl` (`http://<dnsName>:<port>/api/v1`) y `appKeyAsSecret(): ecs.Secret` para que un consumidor lo inyecte con el campo correcto.
+- **Salud del contenedor:** con **Python de la biblioteca estándar**, no con `curl` (las imágenes `-slim` no lo traen).
+- **Excepción A1 (declarada dos veces, caduca 2026-12-31):** la migración corre en el entrypoint (`<migrateCommand> && exec <startCommand>`) con `minimumHealthyPercent 0` y `maximumPercent 100`, de modo que nunca haya dos tasks migrando; el costo es un corte breve por deploy. Sustituto previsto: una task one-off previa al servicio y una prueba de compatibilidad de migraciones entre N y N-1.
+- **Guards y su test** (`packages/ecs-private-service/test/*.spec.ts`; cada uno **verificado en rojo** antes de darlo por hecho):
+
+| # | Guard | Test |
+|---|---|---|
+| **L1** | `digest` y `version` válidos | rechaza `latest`, `1.4`, `^1.4`, `v1.4.1`, digest vacío o mal formado |
+| **L2** | Sin secretos en claro: `DATABASE_URL` y `EMBEDDED_APPLICATIONS` solo en `Secrets`; la clave generada tiene ≥ 32 caracteres | synth + aserción sobre el template; `applicationId` inválido falla |
+| **L3** | Red privada: sin ingress `0.0.0.0/0`, `AssignPublicIp DISABLED`, ingress solo desde `ingressFrom` y al puerto; `ingressFrom` vacío falla | synth + aserciones |
+| **L4** | IAM de mínimo privilegio: task role sin statements; ningún `Action` ni `Resource` con `*` salvo `ecr:GetAuthorizationToken` | synth + aserción |
+| **L5** | Claves reservadas rechazadas en `extraEnvVars` (`DATABASE_URL`, `EMBEDDED_APPLICATIONS`, `ENVIRONMENT`, `ENGINE_VERSION`, `IMAGE_DIGEST`) | una prueba por clave |
+| **L6** | Migración sin solape: el comando es `migrate && exec start` y el despliegue tiene `MinimumHealthyPercent 0` y `MaximumPercent 100`; cambiar cualquiera falla | synth + aserción; lleva la marca de la excepción A1 |
+| **L7** | Contenedor endurecido: `ReadonlyRootFilesystem` + volumen `/tmp`, health check sin `curl`, circuit breaker con rollback | synth + aserción |
+| **L8** | Service Connect con namespace y `appProtocol http` | synth + aserción |
+| **L9** | `aws-cdk-lib` y `constructs` solo como `peerDependencies`, cero `dependencies`. **Realidad hallada al ejecutar P5:** deben ir además marcados `optional` en `peerDependenciesMeta`: pnpm auto-instala los peers obligatorios y G-INT instala el tarball contra un registry muerto a propósito, así que sin la marca G-INT falla con `ERR_PNPM_META_FETCH_FAIL` (el mismo motivo por el que `@nextep/cdk-guardrails` los declara opcionales). Un consumidor real ya tiene su copia | lo cubren G-PKG y `packages/ecs-private-service/test/manifest.spec.ts` (descubre el paquete por disco y falla si no lo halla); G-INT lo ejercita con el tarball real |
+
+- **Pruebas unitarias obligatorias:** L1–L9, más un snapshot del template con las props mínimas (**un fixture JSON versionado**, `test/fixtures/minimal.template.json`, regenerable con `UPDATE_TEMPLATE_FIXTURE=1`; no un `.snap` de Jest: su cabecera lleva una URL ajena que el gate G13 rechaza). **Integración en dev:** no aplica en este repo (ocurre en cada consumidor).
+- **Tareas (en orden):** (1) esqueleto del paquete con la forma que exige G-PKG (`README`, `tsconfig.build.json`, `LICENSE`/`NOTICE` copiados, `files`, `private: true`); (2) validaciones L1, L2, L5; (3) el construct y L3, L4, L7, L8; (4) L6 y la excepción A1 en `docs/exceptions.yml` con dueño y caducidad; (5) el caller de release; (6) relectura del diff buscando nombres, cuentas, dominios y rutas locales.
+- **Aceptación:** `pnpm test` y `pnpm typecheck` en verde con el paquete nuevo (los gates de repo lo descubren sin tocarlos); `scripts/pack.sh` produce un tarball sin `src/`, `test/` ni `fixtures/`; tras el merge, un mantenedor empuja el tag `ecs-private-service-v<versión>` y el Release lleva el `.tgz` y su `.sha256`. **Rollback:** no empujar el tag; un Release publicado no se reescribe (se corrige con el siguiente patch). **Checkpoint:** `feat: Add the private ECS service L3 construct`.
 
 ### P3 — Reglas v2 de `@nextep/cdk-guardrails` *(solo con spec y evidencia)*
 - Familias candidatas (cada regla necesita un caso real que la respalde y nace en `warn`): arquitectura de red de tres capas, parámetros inmutables de Cognito, base de datos sin acceso público, IAM sin comodines, imagen sin tag `latest`, alarmas con acción. Una regla nueva en `error` es un cambio mayor.
