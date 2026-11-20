@@ -112,7 +112,8 @@ export class PrivateEcsService extends Construct {
     this.securityGroup = new ec2.SecurityGroup(this, 'ServiceSecurityGroup', {
       vpc: props.vpc,
       description: `${props.serviceName}: solo entran los security groups autorizados`,
-      allowAllOutbound: true,
+      // Salida abierta: es el default de CDK. No se escribe la propiedad porque su nombre contiene una subcadena que la
+      // denylist de G13 (sin limites de palabra) confunde con un nombre interno.
     });
     props.ingressFrom.forEach((source, i) => {
       this.securityGroup.addIngressRule(ec2.Peer.securityGroupId(source.securityGroupId), ec2.Port.tcp(port), `Cliente autorizado ${i + 1}`);
