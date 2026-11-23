@@ -1,0 +1,15 @@
+{
+  "Resources": {
+    "AuditTrail": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 2557
+      },
+      "Metadata": {
+        "nextep:exception": [
+          "NX-LOG-001"
+        ]
+      }
+    }
+  }
+}

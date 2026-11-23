@@ -2,7 +2,7 @@
 
 Este archivo es para ti, agente. Cumple lo que dice aquí y, si algo no encaja, **reporta en vez de improvisar**.
 
-**Qué es este repo:** paquetes públicos para trabajar con AWS de la forma correcta. Hoy: `@nextep/cdk-guardrails` (reglas de costo y estándar sobre los templates de CDK) y `@nextep/gates` (toolkit para gates de invariantes). Se distribuyen como **tarball de un Release de GitHub**, nunca por un registry de npm. Diseño: `docs/specs/nextep-packages/SPEC.md`.
+**Qué es este repo:** paquetes públicos para trabajar con AWS de la forma correcta. Hoy: `@nextep/cdk-guardrails` (reglas de costo y estándar sobre los templates de CDK) y `@nextep/gates` (toolkit para gates de invariantes). Se distribuyen como **tarball de un Release de GitHub**, nunca por un registry de npm. Diseño: spec `nextep-packages`, en un repo privado de Nextep.
 
 > ## ⚠️ Este repo es PÚBLICO
 > Todo lo que escribas aquí (código, ejemplos, fixtures, mensajes de commit, issues, PRs) lo puede leer cualquiera. **Nunca** incluyas:
@@ -15,7 +15,7 @@ Este archivo es para ti, agente. Cumple lo que dice aquí y, si algo no encaja, 
 
 ## 1. Primero, ubícate
 
-1. Lee `docs/specs/nextep-packages/SPEC.md` (§4 plan por fases y §8 estado).
+1. Lee el spec `nextep-packages` (§4 plan por fases y §8 estado). Vive en un repo privado de Nextep (`docs/specs/nextep-packages/SPEC.md`), no en este.
 2. Si el spec está en BORRADOR, **no implementes**: propón cambios al spec.
 3. Si la realidad contradice el spec: **detente y actualiza el spec primero**.
 

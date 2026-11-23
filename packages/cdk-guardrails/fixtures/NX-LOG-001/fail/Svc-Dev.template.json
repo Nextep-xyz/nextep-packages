@@ -1,0 +1,156 @@
+{
+  "Resources": {
+    "NoRetention": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {}
+    },
+    "OverCeiling": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 731
+      }
+    },
+    "BadValue": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 100
+      }
+    },
+    "Retained": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "Implicit": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        }
+      }
+    },
+    "Covered": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        }
+      }
+    },
+    "CoveredLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 14,
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "Covered"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "DbExport": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceClass": "db.t4g.micro",
+        "EnableCloudwatchLogsExports": [
+          "postgresql"
+        ]
+      }
+    },
+    "DbOk": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceClass": "db.t4g.micro",
+        "EnableCloudwatchLogsExports": [
+          "postgresql"
+        ]
+      }
+    },
+    "DbOkRetention": {
+      "Type": "Custom::LogRetention",
+      "Properties": {
+        "ServiceToken": "token",
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/rds/instance/",
+              {
+                "Ref": "DbOk"
+              },
+              "/postgresql"
+            ]
+          ]
+        },
+        "RetentionInDays": 30
+      }
+    },
+    "Build": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Source": {
+          "Type": "GITHUB"
+        },
+        "Artifacts": {
+          "Type": "NO_ARTIFACTS"
+        }
+      }
+    },
+    "Task": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Name": "app",
+            "Image": "x",
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/ecs/app",
+                "awslogs-create-group": "true",
+                "awslogs-region": "us-east-2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ApiStage": {
+      "Type": "AWS::ApiGateway::Stage",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "Api"
+        },
+        "StageName": "prod",
+        "MethodSettings": [
+          {
+            "HttpMethod": "*",
+            "ResourcePath": "/*",
+            "LoggingLevel": "INFO"
+          }
+        ]
+      }
+    },
+    "Api": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "api"
+      }
+    }
+  }
+}

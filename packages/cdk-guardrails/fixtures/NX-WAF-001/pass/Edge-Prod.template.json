@@ -1,0 +1,51 @@
+{
+  "Resources": {
+    "Acl": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        }
+      }
+    },
+    "Alb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internet-facing"
+      }
+    },
+    "AlbAssoc": {
+      "Type": "AWS::WAFv2::WebACLAssociation",
+      "Properties": {
+        "ResourceArn": {
+          "Ref": "Alb"
+        },
+        "WebACLArn": {
+          "Fn::GetAtt": [
+            "Acl",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "Private": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internal"
+      }
+    }
+  },
+  "Outputs": {
+    "AlbOut": {
+      "Value": {
+        "Ref": "Alb"
+      },
+      "Export": {
+        "Name": "Edge-Prod:ExportsOutputRefAlb"
+      }
+    }
+  }
+}

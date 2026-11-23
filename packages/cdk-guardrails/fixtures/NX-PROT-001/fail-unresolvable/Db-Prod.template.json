@@ -1,0 +1,19 @@
+{
+  "Parameters": {
+    "Protect": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Dynamic": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "DeletionProtection": {
+          "Ref": "Protect"
+        }
+      }
+    }
+  }
+}

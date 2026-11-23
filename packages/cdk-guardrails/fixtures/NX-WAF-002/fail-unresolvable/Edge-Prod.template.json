@@ -1,0 +1,91 @@
+{
+  "Resources": {
+    "DynOverride": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "CommonRuleSet",
+            "Priority": 1,
+            "OverrideAction": {
+              "Fn::If": [
+                "Cond",
+                {
+                  "Count": {}
+                },
+                {
+                  "None": {}
+                }
+              ]
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "CommonRuleSet",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "CommonRuleSet",
+              "SampledRequestsEnabled": true
+            }
+          }
+        ]
+      }
+    },
+    "DynOverrideLog": {
+      "Type": "AWS::WAFv2::LoggingConfiguration",
+      "Properties": {
+        "ResourceArn": {
+          "Fn::GetAtt": [
+            "DynOverride",
+            "Arn"
+          ]
+        },
+        "LogDestinationConfigs": [
+          "arn:aws:logs:us-east-2:<ACCOUNT>:log-group:aws-waf-logs-x"
+        ]
+      }
+    },
+    "OpaqueLog": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "CommonRuleSet",
+            "Priority": 1,
+            "OverrideAction": {
+              "None": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "CommonRuleSet",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "CommonRuleSet",
+              "SampledRequestsEnabled": true
+            }
+          }
+        ]
+      }
+    },
+    "ExternalLog": {
+      "Type": "AWS::WAFv2::LoggingConfiguration",
+      "Properties": {
+        "ResourceArn": "arn:aws:wafv2:us-east-2:<ACCOUNT>:regional/webacl/other/abc",
+        "LogDestinationConfigs": []
+      }
+    }
+  }
+}

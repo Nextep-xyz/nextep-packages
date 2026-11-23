@@ -118,3 +118,29 @@ describe('evaluate(): el catálogo completo corre junto', () => {
     expect(res.map((v) => v.ruleId)).toEqual(expect.arrayContaining(['NX-COST-001', 'NX-COST-002', 'NX-POWER-003']));
   });
 });
+
+describe('evaluate(): excepción por hallazgo (Finding.exceptable)', () => {
+  const TST_ENTRY = entry({ guard: 'NX-TST-001' });
+  const app = (): ReturnType<typeof oneStack> => oneStack('S', { R: { Type: 'AWS::SNS::Topic', Metadata: { 'nextep:exception': ['NX-TST-001'] } } });
+  const fake = (allowsException: boolean, exceptable?: boolean): Rule => ({
+    id: 'NX-TST-001',
+    title: 't',
+    severity: 'error',
+    appliesTo: ['dev'],
+    allowsException,
+    check: (a) => a.map((s) => ({ stack: s.stack, resource: 'R', message: '[NX-TST-001] S/R', ...(exceptable === undefined ? {} : { exceptable }) })),
+  });
+  const own = (r: Rule): string[] => evaluate(app(), ctx({ exceptions: [TST_ENTRY] }), [r]).filter((v) => v.ruleId === 'NX-TST-001').map((v) => `${v.stack}/${v.resource}`);
+
+  it('sin `exceptable`, manda la regla: marca + entrada vigente la silencia', () => {
+    expect(own(fake(true))).toEqual([]);
+  });
+
+  it('`exceptable: false` restringe ESE hallazgo aunque la regla admita excepción (marca + entrada no lo silencian)', () => {
+    expect(own(fake(true, false))).toEqual(['S/R']);
+  });
+
+  it('`exceptable: true` NO amplía: una regla que no admite excepción sigue fallando', () => {
+    expect(own(fake(false, true))).toEqual(['S/R']);
+  });
+});

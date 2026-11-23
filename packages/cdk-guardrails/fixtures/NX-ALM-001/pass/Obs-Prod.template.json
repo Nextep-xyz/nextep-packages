@@ -1,0 +1,113 @@
+{
+  "Resources": {
+    "WithSub": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {}
+    },
+    "WithSubSub": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "Protocol": "email",
+        "Endpoint": "ops@example.com",
+        "TopicArn": {
+          "Ref": "WithSub"
+        }
+      }
+    },
+    "WithSubAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          {
+            "Ref": "WithSub"
+          }
+        ]
+      }
+    },
+    "Inline": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": [
+          {
+            "Protocol": "email",
+            "Endpoint": "ops@example.com"
+          }
+        ]
+      }
+    },
+    "InlineAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          {
+            "Ref": "Inline"
+          }
+        ]
+      }
+    },
+    "Chat": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {}
+    },
+    "ChatCfg": {
+      "Type": "AWS::Chatbot::SlackChannelConfiguration",
+      "Properties": {
+        "ConfigurationName": "c",
+        "IamRoleArn": "r",
+        "SlackChannelId": "C0",
+        "SlackWorkspaceId": "T0",
+        "SnsTopicArns": [
+          {
+            "Ref": "Chat"
+          }
+        ]
+      }
+    },
+    "ChatAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          {
+            "Ref": "Chat"
+          }
+        ]
+      }
+    },
+    "ExternalAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          "arn:aws:sns:us-east-2:<ACCOUNT>:external"
+        ]
+      }
+    }
+  }
+}

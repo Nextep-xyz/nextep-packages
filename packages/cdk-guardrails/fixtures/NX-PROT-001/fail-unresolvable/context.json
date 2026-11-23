@@ -1,0 +1,11 @@
+{
+  "exceptions": [],
+  "now": "2026-11-18T00:00:00Z",
+  "stage": "prod",
+  "meta": {
+    "Edge-Prod": {
+      "region": "us-east-2",
+      "terminationProtection": true
+    }
+  }
+}

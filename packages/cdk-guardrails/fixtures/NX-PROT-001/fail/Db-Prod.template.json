@@ -1,0 +1,34 @@
+{
+  "Resources": {
+    "Unprotected": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres"
+      }
+    },
+    "ExplicitOff": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "DeletionProtection": false
+      }
+    },
+    "AuroraOff": {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties": {
+        "Engine": "aurora-postgresql",
+        "DeletionProtection": false
+      }
+    },
+    "Protected": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "DeletionProtection": true
+      }
+    }
+  }
+}

@@ -36,6 +36,16 @@ Una entrada cubre todos los recursos del proyecto que lleven la marca de esa reg
 
 Con la entrada vencida o ausente, la violación original **reaparece**: una excepción caducada no deja pasar nada.
 
+## Reglas de aviso (`warn`)
+
+Las reglas con severidad `warn` (`NX-BKP-002`, `NX-WAF-002`, `NX-ALM-001`) también admiten excepción, con las mismas dos mitades. Sirve para aceptar un aviso con dueño y caducidad en lugar de dejarlo amarillo para siempre. Un aviso no hace fallar la CLI, el plugin ni el helper de Jest.
+
+> El reporte de policy validation de CDK sugiere «Acknowledge with `NextepGuardrails::<regla>`» también en los avisos. **No lo haga**: el plugin lo detecta y aborta el synth (ver «Lo que NO existe»). La única forma es la de este documento.
+
+## Excepción por hallazgo
+
+El techo es `allowsException` de la regla, pero **un hallazgo concreto puede ser más estricto que su regla** (`Finding.exceptable: false`). Es el caso de `NX-LOG-001`: el log group sin retención y los orígenes implícitos **no** admiten excepción aunque lleven marca y entrada vigente (el hallazgo sigue y dice que no la admite); el exceso sobre el techo y un destino externo sí. El hallazgo de `TerminationProtection` de `NX-PROT-001` tampoco (no hay recurso donde marcarlo). `nextep-guardrails --list-rules` muestra el techo de la regla, no el de cada hallazgo: el detalle está en el doc de cada regla.
+
 ## Lo que NO existe
 
 - Una opción `skip`/`disable`/`ignore` en el contexto, la CLI o el plugin: el motor **rechaza** los campos que no conoce.

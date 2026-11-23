@@ -1,0 +1,97 @@
+{
+  "Resources": {
+    "Vault": {
+      "Type": "AWS::Backup::BackupVault",
+      "Properties": {
+        "BackupVaultName": "locked",
+        "LockConfiguration": {
+          "MinRetentionDays": 7,
+          "ChangeableForDays": 3
+        }
+      }
+    },
+    "Plan": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "Vault",
+                  "BackupVaultName"
+                ]
+              },
+              "CopyActions": [
+                {
+                  "DestinationBackupVaultArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":backup:us-west-2:",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":backup-vault:remote"
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Db": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "DbSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "Plan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "Db"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "Resources": {
+    "AtCeiling": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 365
+      }
+    },
+    "Explicit": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        },
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "ExplicitLogs"
+          }
+        }
+      }
+    },
+    "ExplicitLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "ViaRetention": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        }
+      }
+    },
+    "ViaRetentionRule": {
+      "Type": "Custom::LogRetention",
+      "Properties": {
+        "ServiceToken": "token",
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "ViaRetention"
+              }
+            ]
+          ]
+        },
+        "RetentionInDays": 7
+      }
+    },
+    "Framework": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        },
+        "LoggingConfig": {
+          "ApplicationLogLevel": "FATAL",
+          "LogFormat": "JSON"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "Svc-Dev/Provider/framework-onEvent/Resource"
+      }
+    },
+    "FrameworkLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 90,
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "Framework"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "Db": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceClass": "db.t4g.micro",
+        "EnableCloudwatchLogsExports": [
+          "postgresql",
+          "upgrade"
+        ]
+      }
+    },
+    "DbLogs1": {
+      "Type": "Custom::LogRetention",
+      "Properties": {
+        "ServiceToken": "token",
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/rds/instance/",
+              {
+                "Ref": "Db"
+              },
+              "/postgresql"
+            ]
+          ]
+        },
+        "RetentionInDays": 90
+      }
+    },
+    "DbLogs2": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 90,
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/rds/instance/",
+              {
+                "Ref": "Db"
+              },
+              "/upgrade"
+            ]
+          ]
+        }
+      }
+    },
+    "BuildOff": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "LogsConfig": {
+          "CloudWatchLogs": {
+            "Status": "DISABLED"
+          }
+        }
+      }
+    },
+    "BuildNamed": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "LogsConfig": {
+          "CloudWatchLogs": {
+            "Status": "ENABLED",
+            "GroupName": {
+              "Ref": "BuildLogs"
+            }
+          }
+        }
+      }
+    },
+    "BuildLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "Task": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Name": "app",
+            "Image": "x",
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "TaskLogs"
+                },
+                "awslogs-region": "us-east-2"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "TaskLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "Svc": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "ServiceConnectConfiguration": {
+          "Enabled": true,
+          "LogConfiguration": {
+            "LogDriver": "awslogs",
+            "Options": {
+              "awslogs-group": {
+                "Ref": "TaskLogs"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Api": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "api"
+      }
+    },
+    "ApiLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "ApiStage": {
+      "Type": "AWS::ApiGateway::Stage",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "Api"
+        },
+        "StageName": "prod",
+        "AccessLogSetting": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "ApiLogs",
+              "Arn"
+            ]
+          }
+        },
+        "MethodSettings": [
+          {
+            "HttpMethod": "*",
+            "ResourcePath": "/*",
+            "LoggingLevel": "OFF"
+          }
+        ]
+      }
+    },
+    "Sm": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "RoleArn": "role",
+        "DefinitionString": "{}",
+        "LoggingConfiguration": {
+          "Level": "ALL",
+          "Destinations": [
+            {
+              "CloudWatchLogsLogGroup": {
+                "LogGroupArn": {
+                  "Fn::GetAtt": [
+                    "SmLogs",
+                    "Arn"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "SmLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "Flow": {
+      "Type": "AWS::EC2::FlowLog",
+      "Properties": {
+        "ResourceType": "VPC",
+        "ResourceId": "vpc",
+        "LogDestinationType": "cloud-watch-logs",
+        "LogGroupName": {
+          "Ref": "FlowLogs"
+        }
+      }
+    },
+    "FlowLogs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 30
+      }
+    },
+    "FlowToS3": {
+      "Type": "AWS::EC2::FlowLog",
+      "Properties": {
+        "ResourceType": "VPC",
+        "ResourceId": "vpc",
+        "LogDestinationType": "s3",
+        "LogDestination": "arn:aws:s3:::bucket"
+      }
+    }
+  }
+}

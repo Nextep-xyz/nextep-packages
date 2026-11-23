@@ -1,0 +1,168 @@
+{
+  "Resources": {
+    "Vault": {
+      "Type": "AWS::Backup::BackupVault",
+      "Properties": {
+        "BackupVaultName": "locked",
+        "LockConfiguration": {
+          "MinRetentionDays": 7,
+          "ChangeableForDays": 3
+        }
+      }
+    },
+    "PlanA": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "Vault",
+                  "BackupVaultName"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "NoCopy": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "NoCopySel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "PlanA",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "NoCopy"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "PlanB": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "Vault",
+                  "BackupVaultName"
+                ]
+              },
+              "CopyActions": [
+                {
+                  "DestinationBackupVaultArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":backup:us-east-2:",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":backup-vault:remote"
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "SameRegionCopy": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "SameRegionCopySel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "PlanB",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "SameRegionCopy"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Unprotected": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    }
+  }
+}

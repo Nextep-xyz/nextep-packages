@@ -1,0 +1,155 @@
+{
+  "Resources": {
+    "CountOnly": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "CommonRuleSet",
+            "Priority": 1,
+            "OverrideAction": {
+              "Count": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "CommonRuleSet",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "CommonRuleSet",
+              "SampledRequestsEnabled": true
+            }
+          },
+          {
+            "Name": "KnownBadInputs",
+            "Priority": 1,
+            "OverrideAction": {
+              "Count": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "KnownBadInputs",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "KnownBadInputs",
+              "SampledRequestsEnabled": true
+            }
+          }
+        ]
+      }
+    },
+    "CountOnlyLog": {
+      "Type": "AWS::WAFv2::LoggingConfiguration",
+      "Properties": {
+        "ResourceArn": {
+          "Fn::GetAtt": [
+            "CountOnly",
+            "Arn"
+          ]
+        },
+        "LogDestinationConfigs": [
+          "arn:aws:logs:us-east-2:<ACCOUNT>:log-group:aws-waf-logs-x"
+        ]
+      }
+    },
+    "NoLogging": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "CommonRuleSet",
+            "Priority": 1,
+            "OverrideAction": {
+              "None": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "CommonRuleSet",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "CommonRuleSet",
+              "SampledRequestsEnabled": true
+            }
+          }
+        ]
+      }
+    },
+    "Fine": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "CommonRuleSet",
+            "Priority": 1,
+            "OverrideAction": {
+              "None": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "CommonRuleSet",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "CommonRuleSet",
+              "SampledRequestsEnabled": true
+            }
+          },
+          {
+            "Name": "IpReputation",
+            "Priority": 1,
+            "OverrideAction": {
+              "Count": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "IpReputation",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "IpReputation",
+              "SampledRequestsEnabled": true
+            }
+          }
+        ]
+      }
+    },
+    "FineLog": {
+      "Type": "AWS::WAFv2::LoggingConfiguration",
+      "Properties": {
+        "ResourceArn": {
+          "Fn::GetAtt": [
+            "Fine",
+            "Arn"
+          ]
+        },
+        "LogDestinationConfigs": [
+          "arn:aws:logs:us-east-2:<ACCOUNT>:log-group:aws-waf-logs-x"
+        ]
+      }
+    }
+  }
+}

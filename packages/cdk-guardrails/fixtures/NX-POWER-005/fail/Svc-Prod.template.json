@@ -1,0 +1,86 @@
+{
+  "Resources": {
+    "Idle": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DesiredCount": 0
+      }
+    },
+    "Scaled": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td"
+      }
+    },
+    "ScaledTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "ServiceNamespace": "ecs",
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "MaxCapacity": 4,
+        "MinCapacity": 0,
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Scaled",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "Night": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DesiredCount": 2
+      }
+    },
+    "NightTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "ServiceNamespace": "ecs",
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "MaxCapacity": 4,
+        "MinCapacity": 1,
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Night",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        },
+        "ScheduledActions": [
+          {
+            "ScheduledActionName": "night",
+            "Schedule": "cron(0 2 * * ? *)",
+            "ScalableTargetAction": {
+              "MinCapacity": 0,
+              "MaxCapacity": 4
+            }
+          }
+        ]
+      }
+    }
+  }
+}

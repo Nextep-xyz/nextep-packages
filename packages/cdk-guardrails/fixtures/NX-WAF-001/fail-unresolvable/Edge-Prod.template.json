@@ -1,0 +1,46 @@
+{
+  "Parameters": {
+    "Scheme": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Acl": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        }
+      }
+    },
+    "Maybe": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internet-facing"
+      }
+    },
+    "ExternalAssoc": {
+      "Type": "AWS::WAFv2::WebACLAssociation",
+      "Properties": {
+        "ResourceArn": "arn:aws:elasticloadbalancing:us-east-2:<ACCOUNT>:loadbalancer/app/other/abc",
+        "WebACLArn": {
+          "Fn::GetAtt": [
+            "Acl",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "DynScheme": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": {
+          "Ref": "Scheme"
+        }
+      }
+    }
+  }
+}

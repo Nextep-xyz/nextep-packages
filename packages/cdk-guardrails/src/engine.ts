@@ -40,7 +40,8 @@ function assertContext(ctx: GuardrailsContext): void {
  * (marca sin entrada, entrada sin marca, vencida, regla que no admite excepción: NX-EXC-00x).
  */
 function isExcepted(rule: Rule, f: Finding, app: StackTemplate[], ctx: GuardrailsContext, now: Date): boolean {
-  if (!rule.allowsException || f.resource === undefined) return false;
+  // `f.exceptable === false` restringe un hallazgo concreto de una regla que sí admite excepción; nunca la amplía.
+  if (!rule.allowsException || f.exceptable === false || f.resource === undefined) return false;
   const res = app.find((s) => s.stack === f.stack)?.template.Resources?.[f.resource];
   if (!markIds(res?.Metadata?.[EXCEPTION_METADATA_KEY]).includes(rule.id)) return false;
   return ctx.exceptions.some((e) => e.guard === rule.id && isActive(e, now));

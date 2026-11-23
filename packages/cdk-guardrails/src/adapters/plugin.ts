@@ -1,7 +1,7 @@
 import { evaluate } from '../engine';
 import { ALL_RULES } from '../rules';
 import type { ExceptionEntry, Stage, Violation } from '../types';
-import { loadExceptionsFile, readTemplate, stackIdOf } from './load';
+import { loadExceptionsFile, readTemplates, stackIdOf } from './load';
 
 /** Nombre del plugin: es el espacio de nombres de las marcas de `Validations.acknowledge` (`NextepGuardrails::<regla>`). */
 export const PLUGIN_NAME = 'NextepGuardrails';
@@ -72,7 +72,7 @@ export class NextepGuardrailsPlugin {
 
   validate(context: PolicyValidationContextLike): PolicyReportLike {
     rejectAcknowledgments(context.appConstruct);
-    const templates = context.templatePaths.map(readTemplate);
+    const templates = readTemplates(context.templatePaths);
     const violations = evaluate(templates, { stage: this.opts.stage, sharedStacks: this.opts.sharedStacks, exceptions: this.exceptions, now: this.opts.now });
     const pathOf = (v: Violation): string => context.templatePaths.find((p) => stackIdOf(p) === v.stack) ?? (context.templatePaths[0] as string);
     return {
@@ -82,7 +82,8 @@ export class NextepGuardrailsPlugin {
         // La CLI de CDK solo imprime el archivo del template y el logical id: el mensaje completo (con stack y recurso) va en la descripción.
         description: v.message,
         fix: `docs/rules/${v.ruleId}.md`,
-        severity: v.severity,
+        // CDK solo conoce fatal|error|warning|info: una severidad 'warn' se mostraria como «custom». Con success:true el reporte se imprime y NO aborta el synth.
+        severity: v.severity === 'warn' ? 'warning' : v.severity,
         violatingResources: [{ resourceLogicalId: v.resource ?? v.stack, templatePath: pathOf(v), locations: [] }],
       })),
     };

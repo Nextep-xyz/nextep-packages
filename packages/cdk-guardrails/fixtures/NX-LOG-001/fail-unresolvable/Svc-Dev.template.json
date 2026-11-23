@@ -1,0 +1,70 @@
+{
+  "Parameters": {
+    "Days": {
+      "Type": "Number"
+    }
+  },
+  "Resources": {
+    "DynRetention": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": {
+          "Ref": "Days"
+        }
+      }
+    },
+    "DynLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        },
+        "LoggingConfig": {
+          "Fn::If": [
+            "Cond",
+            {
+              "LogGroup": "a"
+            },
+            {
+              "LogGroup": "b"
+            }
+          ]
+        }
+      }
+    },
+    "ExternalLambda": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": "role",
+        "Code": {
+          "ZipFile": "x"
+        },
+        "LoggingConfig": {
+          "LogGroup": "/shared/central-logs"
+        }
+      }
+    },
+    "ExternalDest": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "RoleArn": "role",
+        "DefinitionString": "{}",
+        "LoggingConfiguration": {
+          "Level": "ALL",
+          "Destinations": [
+            {
+              "CloudWatchLogsLogGroup": {
+                "LogGroupArn": "arn:aws:logs:us-east-2:<ACCOUNT>:log-group:/shared/central"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

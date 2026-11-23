@@ -32,12 +32,18 @@ installGuardrails(app, { stage, sharedStacks: ['MiDominio'], exceptionsFile: 'go
 ```
 
 ```powershell
-# Revisar un cdk.out ya generado (exit 1 si hay violaciones con severidad error)
+# Revisar un cdk.out ya generado (exit 1 si hay violaciones con severidad error; los avisos NO cuentan)
 nextep-guardrails check --out infra/cdk.out --stage dev --exceptions governance/exceptions.yml
 nextep-guardrails --list-rules
 ```
 
-## Catálogo (v1)
+### Avisos y GitHub Actions
+
+Las reglas con severidad `warn` (marcadas **Aviso** en el catálogo) **nunca** hacen fallar la CLI, el plugin ni el helper de Jest: la CLI las imprime como `WARN`, el plugin las reporta a CDK con severidad `warning` y el helper de Jest las escribe por stderr.
+
+Dentro de GitHub Actions, la CLI se autodetecta (`GITHUB_ACTIONS=true`) y emite **anotaciones** (`::warning title=<regla>::<mensaje>` y `::error …`) que aparecen en amarillo/rojo en el resumen del run; `--format text` lo desactiva y `--format github` lo fuerza. Si existe `GITHUB_STEP_SUMMARY`, además **anexa una tabla Markdown** con todas las violaciones (GitHub muestra como máximo 10 anotaciones de cada tipo por step: la tabla es el listado completo).
+
+## Catálogo
 
 `nextep-guardrails --list-rules` lo imprime. Cada regla tiene su doc en `docs/rules/<id>.md` (qué verifica, por qué, cómo corregirlo, de dónde viene, límites conocidos).
 
@@ -51,8 +57,20 @@ nextep-guardrails --list-rules
 | `NX-POWER-002` | En `dev`/`stg` los servicios Fargate bajan a 0 |
 | `NX-POWER-003` | En `dev`/`stg` la RDS tiene stop y start programados |
 | `NX-POWER-004` | El stop de RDS no corre todos los días |
+| `NX-POWER-005` | En `prod` todo servicio ECS tiene `DesiredCount` y `MinCapacity` >= 1 |
+| `NX-ECS-001` | Todo servicio ECS tiene circuit breaker con rollback (todos los stages) |
+| `NX-PROT-001` | En `prod`: `DeletionProtection` en RDS/Aurora y ALB, `TerminationProtection` en los stacks |
+| `NX-S3-001` | En `prod`: todo bucket con versioning, bloqueo público completo y TLS obligatorio |
+| `NX-BKP-001` | En `prod`: RDS con PITR (>= 7 días) y un BackupPlan cuyo vault tiene Vault Lock |
+| `NX-BKP-002` | **Aviso.** La RDS tiene copia de respaldo a otra región (con o sin plan) |
+| `NX-WAF-001` | En `prod`: todo ALB internet-facing tiene una WebACL asociada |
+| `NX-WAF-002` | **Aviso.** La WebACL no está solo en count y tiene logging |
+| `NX-ALM-001` | **Aviso.** Todo topic usado como destino de alarmas tiene al menos un suscriptor |
+| `NX-LOG-001` | Ningún log group eterno y todos con techo de 365 días, incluidos los implícitos (todos los stages) |
 
 Excepciones: `docs/exceptions.md`. **No existe forma de desactivar una regla** salvo una excepción declarada dos veces y con caducidad.
+
+**Actualizar desde 0.1.x:** las reglas `error` nuevas (todas menos `NX-BKP-002`, `NX-WAF-002` y `NX-ALM-001`) pueden romper el build de un proyecto existente. Ver `docs/migration-0.2.0.md`: qué regla, qué falla típicamente y cómo arreglarlo.
 
 ## Contexto de evaluación
 

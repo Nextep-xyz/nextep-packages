@@ -26,6 +26,10 @@ export function expectNextepCompliant(app: AppLike, opts: CompliantOptions): voi
   const templates = loadTemplatesFromDir(directory);
   const exceptions = opts.exceptions ?? (opts.exceptionsFile ? loadExceptionsFile(opts.exceptionsFile) : []);
   const violations = evaluate(templates, { stage: opts.stage, sharedStacks: opts.sharedStacks, exceptions, now: opts.now });
+  // Las `warn` no hacen fallar el test, pero tampoco se pierden: salen por stderr con el mismo formato que la CLI.
+  const warns = violations.filter((v) => v.severity === 'warn');
+  if (warns.length) process.stderr.write(`${formatViolations(warns, opts.stage)}
+`);
   if (violations.some((v) => v.severity === 'error')) {
     throw new Error(`El app no cumple los guardarrailes de Nextep:\n${formatViolations(violations, opts.stage)}`);
   }

@@ -1,0 +1,7 @@
+[
+  "Db-Prod/(stack)",
+  "Db-Prod/AuroraOff",
+  "Db-Prod/ExplicitOff",
+  "Db-Prod/Unprotected",
+  "Edge-Prod/Alb"
+]

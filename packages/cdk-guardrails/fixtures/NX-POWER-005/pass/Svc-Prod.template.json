@@ -1,0 +1,63 @@
+{
+  "Resources": {
+    "TwoTasks": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DesiredCount": 2
+      }
+    },
+    "Autoscaled": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td"
+      }
+    },
+    "AutoscaledTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "ServiceNamespace": "ecs",
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "MaxCapacity": 4,
+        "MinCapacity": 1,
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Autoscaled",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "Daemon": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "SchedulingStrategy": "DAEMON"
+      }
+    },
+    "LambdaTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "ServiceNamespace": "lambda",
+        "ScalableDimension": "lambda:function:ProvisionedConcurrency",
+        "MaxCapacity": 4,
+        "MinCapacity": 0,
+        "ResourceId": "function:fn:live"
+      }
+    }
+  }
+}

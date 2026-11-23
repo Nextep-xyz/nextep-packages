@@ -1,8 +1,9 @@
 // Lógica pura del gate GR1 (spec cdk-guardrails §3): inventario de reglas de @nextep/cdk-guardrails → problemas.
 // El gate (governance/gates/guardrails-rules.spec.ts) arma el inventario recorriendo el disco; aquí solo se juzga.
 
-export const MIN_RULES = 8;
-export const RULE_ID = /^NX-[A-Z]+-\d{3}$/;
+export const MIN_RULES = 18;
+/** El área empieza por letra y admite dígitos (`NX-S3-001`: el id aprobado de la regla de buckets). Mismo alfabeto que el parser de la evidencia de paquetes de la plataforma. */
+export const RULE_ID = /^NX-[A-Z][A-Z0-9]*-\d{3}$/;
 export const VALID_SEVERITIES = ['error', 'warn'];
 export const VALID_STAGES = ['dev', 'stg', 'prod', 'shared'];
 /** Secciones que todo `docs/rules/<id>.md` debe tener (spec F1 tarea 3: qué, por qué, cómo corregirlo, de dónde viene). */
@@ -16,6 +17,8 @@ export interface RuleFacts {
   severity: unknown;
   appliesTo: unknown;
   allowsException: unknown;
+  /** Opcional: la regla declara camino de «falla cerrado» (no puede demostrar el cumplimiento y reporta). */
+  failsClosed?: unknown;
 }
 
 export interface FixtureCase {
@@ -31,9 +34,11 @@ export interface RuleInventory {
   /** id → contenido del `docs/rules/<id>.md`. */
   docs: Record<string, string>;
   /** id → { fail?, pass? } descubiertos en `fixtures/<id>/`. */
-  fixtures: Record<string, { fail?: FixtureCase; pass?: FixtureCase }>;
+  fixtures: Record<string, { fail?: FixtureCase; pass?: FixtureCase; unresolvable?: FixtureCase }>;
   /** ids que exporta `ALL_RULES` (src/rules/index.ts). */
   registryIds: string[];
+  /** Contenido del README del paquete: su catálogo debe listar toda regla descubierta. Si es undefined, no se comprueba. */
+  readme?: string;
 }
 
 export function checkRuleInventory(inv: RuleInventory): string[] {
@@ -59,6 +64,7 @@ export function checkRuleInventory(inv: RuleInventory): string[] {
       p.push(`${r.file}: appliesTo debe ser una lista no vacía de ${VALID_STAGES.join(' | ')}`);
     }
     if (typeof r.allowsException !== 'boolean') p.push(`${r.file}: allowsException debe ser true o false`);
+    if (r.failsClosed !== undefined && typeof r.failsClosed !== 'boolean') p.push(`${r.file}: failsClosed debe ser true o false (o no declararse)`);
   }
 
   for (const id of ids) {
@@ -80,6 +86,17 @@ export function checkRuleInventory(inv: RuleInventory): string[] {
     if (fx.fail && (fx.fail.expectedCount === undefined || fx.fail.expectedCount < 1)) {
       p.push(`${id}: fixtures/${id}/fail/expected.json debe listar al menos un «stack/recurso» esperado`);
     }
+    // Una regla que falla cerrado debe PROBAR ese camino: el caso «no resoluble» es parte del contrato, no una cortesía.
+    if (inv.rules.find((r) => r.id === id)?.failsClosed === true) {
+      const u = fx.unresolvable;
+      if (!u) p.push(`${id}: declara failsClosed pero falta el fixture no resoluble (fixtures/${id}/fail-unresolvable/)`);
+      else {
+        if (u.templates.length === 0) p.push(`${id}: fixtures/${id}/fail-unresolvable/ no tiene ningún *.template.json`);
+        if (!u.hasContext) p.push(`${id}: fixtures/${id}/fail-unresolvable/ no tiene context.json`);
+        if (u.expectedCount === undefined || u.expectedCount < 1) p.push(`${id}: fixtures/${id}/fail-unresolvable/expected.json debe listar al menos un «stack/recurso» esperado`);
+      }
+    }
+    if (inv.readme !== undefined && !inv.readme.includes(`\`${id}\``)) p.push(`${id}: el catálogo del README del paquete no lista la regla (\`${id}\`)`);
   }
 
   // Obsoletos: documentación o fixtures de una regla que ya no existe (mismo criterio que las excepciones: nada queda huérfano).

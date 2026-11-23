@@ -1,0 +1,197 @@
+{
+  "Resources": {
+    "LockedVault": {
+      "Type": "AWS::Backup::BackupVault",
+      "Properties": {
+        "BackupVaultName": "locked",
+        "LockConfiguration": {
+          "MinRetentionDays": 7,
+          "ChangeableForDays": 3
+        }
+      }
+    },
+    "OpenVault": {
+      "Type": "AWS::Backup::BackupVault",
+      "Properties": {
+        "BackupVaultName": "open"
+      }
+    },
+    "LockedPlan": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "LockedVault",
+                  "BackupVaultName"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "OpenPlan": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "OpenVault",
+                  "BackupVaultName"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Good": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "GoodSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "LockedPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "Good"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "NoPitr": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres"
+      }
+    },
+    "NoPitrSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "LockedPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "NoPitr"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "NoSelection": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "Unlocked": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "UnlockedSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "OpenPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "Unlocked"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

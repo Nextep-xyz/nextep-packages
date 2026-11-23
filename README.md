@@ -50,4 +50,4 @@ pnpm test          # gates + tests de cada paquete
 pnpm typecheck
 ```
 
-Lee `AGENTS.md` antes de contribuir y `docs/specs/nextep-packages/SPEC.md` para el diseño y el estado.
+Lee `AGENTS.md` antes de contribuir; el diseño y el estado viven en un spec interno de Nextep.

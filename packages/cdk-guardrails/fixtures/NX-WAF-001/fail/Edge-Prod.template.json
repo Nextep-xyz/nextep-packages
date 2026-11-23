@@ -1,0 +1,61 @@
+{
+  "Resources": {
+    "Acl": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        }
+      }
+    },
+    "OpenAlb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internet-facing"
+      }
+    },
+    "DefaultSchemeAlb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application"
+      }
+    },
+    "Covered": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internet-facing"
+      }
+    },
+    "CoveredAssoc": {
+      "Type": "AWS::WAFv2::WebACLAssociation",
+      "Properties": {
+        "ResourceArn": {
+          "Ref": "Covered"
+        },
+        "WebACLArn": {
+          "Fn::GetAtt": [
+            "Acl",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "Internal": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internal"
+      }
+    },
+    "Nlb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "network",
+        "Scheme": "internet-facing"
+      }
+    }
+  }
+}

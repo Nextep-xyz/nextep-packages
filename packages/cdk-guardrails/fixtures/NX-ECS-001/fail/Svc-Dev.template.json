@@ -1,0 +1,60 @@
+{
+  "Resources": {
+    "NoBreaker": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 100
+        }
+      }
+    },
+    "HalfBreaker": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": false
+          }
+        }
+      }
+    },
+    "OnlyEnable": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentController": {
+          "Type": "ECS"
+        },
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": true
+          }
+        }
+      }
+    },
+    "Fine": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        }
+      }
+    }
+  }
+}

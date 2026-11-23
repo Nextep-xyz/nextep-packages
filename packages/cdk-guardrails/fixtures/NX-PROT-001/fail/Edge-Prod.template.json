@@ -1,0 +1,17 @@
+{
+  "Resources": {
+    "Alb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internet-facing",
+        "LoadBalancerAttributes": [
+          {
+            "Key": "routing.http2.enabled",
+            "Value": "true"
+          }
+        ]
+      }
+    }
+  }
+}

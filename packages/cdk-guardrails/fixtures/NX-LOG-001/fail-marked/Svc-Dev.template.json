@@ -1,0 +1,13 @@
+{
+  "Resources": {
+    "NoRetention": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {},
+      "Metadata": {
+        "nextep:exception": [
+          "NX-LOG-001"
+        ]
+      }
+    }
+  }
+}

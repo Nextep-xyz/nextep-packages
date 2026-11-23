@@ -1,0 +1,68 @@
+{
+  "Parameters": {
+    "Subs": {
+      "Type": "String"
+    },
+    "ExternalTopic": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Maybe": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {}
+    },
+    "MaybeAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          {
+            "Ref": "Maybe"
+          }
+        ]
+      }
+    },
+    "ExternalSub": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "Protocol": "email",
+        "Endpoint": "ops@example.com",
+        "TopicArn": {
+          "Ref": "ExternalTopic"
+        }
+      }
+    },
+    "InlineDyn": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": {
+          "Ref": "Subs"
+        }
+      }
+    },
+    "InlineDynAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          {
+            "Ref": "InlineDyn"
+          }
+        ]
+      }
+    }
+  }
+}

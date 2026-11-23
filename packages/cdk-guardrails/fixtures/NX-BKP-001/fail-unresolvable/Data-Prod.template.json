@@ -1,0 +1,186 @@
+{
+  "Parameters": {
+    "Retention": {
+      "Type": "Number"
+    },
+    "ExternalPlan": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "LockedVault": {
+      "Type": "AWS::Backup::BackupVault",
+      "Properties": {
+        "BackupVaultName": "locked",
+        "LockConfiguration": {
+          "MinRetentionDays": 7,
+          "ChangeableForDays": 3
+        }
+      }
+    },
+    "LockedPlan": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "LockedVault",
+                  "BackupVaultName"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "DefaultPlan": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": "Default"
+            }
+          ]
+        }
+      }
+    },
+    "DynamicRetention": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": {
+          "Ref": "Retention"
+        }
+      }
+    },
+    "DynamicRetentionSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "LockedPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "DynamicRetention"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "ExternalPlan": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "ExternalPlanSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Ref": "ExternalPlan"
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "ExternalPlan"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "DefaultVault": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14
+      }
+    },
+    "DefaultVaultSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "DefaultPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "DefaultVault"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

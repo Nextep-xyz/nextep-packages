@@ -1,0 +1,47 @@
+{
+  "Parameters": {
+    "Enabled": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "DynamicBreaker": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": {
+              "Ref": "Enabled"
+            },
+            "Rollback": true
+          }
+        }
+      }
+    },
+    "DynamicConfig": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "Fn::If": [
+            "Cond",
+            {
+              "DeploymentCircuitBreaker": {
+                "Enable": true,
+                "Rollback": true
+              }
+            },
+            {
+              "MaximumPercent": 150
+            }
+          ]
+        }
+      }
+    }
+  }
+}

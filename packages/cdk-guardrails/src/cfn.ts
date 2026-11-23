@@ -1,8 +1,18 @@
 // Helpers puros para leer un template de CloudFormation. Sin red, sin fs, sin aws-cdk-lib.
 import type { CfnResource, StackTemplate } from './types';
 
-type Obj = Record<string, unknown>;
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export type Obj = Record<string, unknown>;
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** ¿Es un intrinsic de CloudFormation (`Ref`, `Fn::*`, `Condition`)? Un objeto con UNA clave así no es un contenedor literal: su valor real no se conoce. */
+export const isIntrinsic = (v: unknown): boolean => {
+  if (!isObj(v)) return false;
+  const keys = Object.keys(v);
+  return keys.length === 1 && (keys[0] === 'Ref' || keys[0] === 'Condition' || (keys[0] as string).startsWith('Fn::'));
+};
+
+/** Un objeto literal (no un intrinsic): se puede leer por claves. */
+export const isLit = (v: unknown): v is Obj => isObj(v) && !isIntrinsic(v);
 
 /** Carácter que ocupa el lugar de un intrinsic que no se puede resolver estáticamente. */
 export const HOLE = '\u0000';
@@ -162,3 +172,11 @@ export function scheduleCadence(expr: string): Cadence {
   if (f.length !== 6) return 'unknown';
   return weekdayCadence(f[4] as string);
 }
+
+/** ¿Es una base de datos RDS que se juzga? Se omiten los miembros de un cluster (los juzga el DBCluster) y las réplicas (el dato primario es el que se protege). */
+export const isPrimaryDb = (type: string, p: Record<string, unknown>): boolean =>
+  type === 'AWS::RDS::DBInstance' ? p.DBClusterIdentifier === undefined && p.SourceDBInstanceIdentifier === undefined : p.ReplicationSourceIdentifier === undefined;
+
+/** RDS/Aurora primarias del app (instancias sueltas y clusters). */
+export const primaryDatabases = (app: StackTemplate[]): Located[] =>
+  [...ofType(app, 'AWS::RDS::DBInstance'), ...ofType(app, 'AWS::RDS::DBCluster')].filter((l) => isPrimaryDb(l.res.Type, propsOf(l.res)));

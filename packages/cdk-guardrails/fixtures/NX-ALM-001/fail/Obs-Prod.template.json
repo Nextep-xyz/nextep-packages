@@ -1,0 +1,26 @@
+{
+  "Resources": {
+    "Silent": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "alarms"
+      }
+    },
+    "SilentArn": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Name": "/shop/prod/observability/alarm-topic-arn",
+        "Type": "String",
+        "Value": {
+          "Ref": "Silent"
+        }
+      }
+    },
+    "Unused": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "unused"
+      }
+    }
+  }
+}

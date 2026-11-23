@@ -1,0 +1,27 @@
+{
+  "Parameters": {
+    "AlarmTopicArn": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/shop/prod/observability/alarm-topic-arn"
+    }
+  },
+  "Resources": {
+    "CpuHigh": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "MetricName": "m",
+        "Namespace": "n",
+        "Period": 60,
+        "Statistic": "Average",
+        "AlarmActions": [
+          {
+            "Ref": "AlarmTopicArn"
+          }
+        ]
+      }
+    }
+  }
+}

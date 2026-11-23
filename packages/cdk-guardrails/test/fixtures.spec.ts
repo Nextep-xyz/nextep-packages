@@ -7,12 +7,21 @@ import { discoverFixtureDirs, loadFixture } from '@guardrails/test/helpers';
 //  - GR3: NX-POWER-001 sigue fallando en prod aunque el recurso lleve la marca nextep:exception y exista una entrada válida.
 
 const DIRS = discoverFixtureDirs();
-const byKind = (kind: string): string[] => DIRS.filter((d) => d.split('/')[1] === kind);
+const kindOf = (d: string): string => d.split('/')[1] as string;
+// Casos `fail` y `fail-<variante>` (p. ej. fail-unresolvable): deben fallar con exactamente lo esperado. `fail-excepted` lo juzga GR3 (la excepción no la levanta).
+// Casos `pass` y `pass-<variante>`: no producen nada de su regla.
+const byKind = (kind: 'fail' | 'pass'): string[] =>
+  DIRS.filter((d) => kindOf(d) === kind || (kindOf(d).startsWith(`${kind}-`) && kindOf(d) !== 'fail-excepted'));
 
 describe('fixtures: descubrimiento', () => {
   it('descubre fixtures (un gate que no encuentra sujetos no prueba nada)', () => {
-    expect(byKind('fail').length).toBeGreaterThanOrEqual(8);
-    expect(byKind('pass').length).toBeGreaterThanOrEqual(8);
+    expect(byKind('fail').length).toBeGreaterThanOrEqual(18);
+    expect(byKind('pass').length).toBeGreaterThanOrEqual(18);
+  });
+
+  it('todo caso se llama fail, pass o empieza por fail-/pass- (un nombre con una errata no lo corre ningún test)', () => {
+    const ok = (d: string): boolean => /^(fail|pass)(-[a-z0-9-]+)?$/.test(kindOf(d)) && (kindOf(d) !== 'fail-excepted' || d.startsWith('NX-POWER-001/'));
+    expect(DIRS.filter((d) => !ok(d))).toEqual([]);
   });
 
   it('todo directorio de fixtures pertenece a una regla del catálogo', () => {

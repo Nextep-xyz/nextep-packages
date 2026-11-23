@@ -1,0 +1,69 @@
+{
+  "Resources": {
+    "Rolling": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentController": {
+          "Type": "ECS"
+        },
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        }
+      }
+    },
+    "NoController": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": "true",
+            "Rollback": "true"
+          }
+        }
+      }
+    },
+    "ExternalController": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentController": {
+          "Type": "EXTERNAL"
+        }
+      }
+    },
+    "CodeDeploy": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentController": {
+          "Type": "CODE_DEPLOY"
+        }
+      }
+    },
+    "BlueGreen": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DeploymentConfiguration": {
+          "Strategy": "BLUE_GREEN",
+          "BakeTimeInMinutes": 5
+        }
+      }
+    }
+  }
+}

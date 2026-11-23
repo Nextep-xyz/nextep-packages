@@ -1,0 +1,27 @@
+{
+  "Resources": {
+    "Acl": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        }
+      }
+    },
+    "ImportedAssoc": {
+      "Type": "AWS::WAFv2::WebACLAssociation",
+      "Properties": {
+        "ResourceArn": {
+          "Fn::ImportValue": "Edge-Prod:ExportsOutputRefAlb"
+        },
+        "WebACLArn": {
+          "Fn::GetAtt": [
+            "Acl",
+            "Arn"
+          ]
+        }
+      }
+    }
+  }
+}

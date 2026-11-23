@@ -1,0 +1,175 @@
+{
+  "Resources": {
+    "LockedVault": {
+      "Type": "AWS::Backup::BackupVault",
+      "Properties": {
+        "BackupVaultName": "locked",
+        "LockConfiguration": {
+          "MinRetentionDays": 7,
+          "ChangeableForDays": 3
+        }
+      }
+    },
+    "LockedPlan": {
+      "Type": "AWS::Backup::BackupPlan",
+      "Properties": {
+        "BackupPlan": {
+          "BackupPlanName": "plan",
+          "BackupPlanRule": [
+            {
+              "RuleName": "daily",
+              "TargetBackupVault": {
+                "Fn::GetAtt": [
+                  "LockedVault",
+                  "BackupVaultName"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ByArn": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14,
+        "DBInstanceIdentifier": "by-arn"
+      }
+    },
+    "ByArnSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "LockedPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":db:",
+                  {
+                    "Ref": "ByArn"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "ByTag": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "BackupRetentionPeriod": 14,
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "prod"
+          }
+        ]
+      }
+    },
+    "ByTagSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "LockedPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "tags",
+          "ListOfTags": [
+            {
+              "ConditionType": "STRINGEQUALS",
+              "ConditionKey": "Environment",
+              "ConditionValue": "prod"
+            }
+          ]
+        }
+      }
+    },
+    "Replica": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "SourceDBInstanceIdentifier": "by-arn"
+      }
+    },
+    "Cluster": {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties": {
+        "Engine": "aurora-postgresql",
+        "BackupRetentionPeriod": 7
+      }
+    },
+    "ClusterSel": {
+      "Type": "AWS::Backup::BackupSelection",
+      "Properties": {
+        "BackupPlanId": {
+          "Fn::GetAtt": [
+            "LockedPlan",
+            "BackupPlanId"
+          ]
+        },
+        "BackupSelection": {
+          "IamRoleArn": "role",
+          "SelectionName": "sel",
+          "Resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":rds:us-east-2:",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":cluster:",
+                  {
+                    "Ref": "Cluster"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "Member": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "DBClusterIdentifier": {
+          "Ref": "Cluster"
+        }
+      }
+    }
+  }
+}

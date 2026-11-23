@@ -1,0 +1,13 @@
+{
+  "exceptions": [
+    {
+      "id": "EXC-LOG",
+      "guard": "NX-LOG-001",
+      "reason": "Retención de siete años exigida por auditoría",
+      "owner": "devops",
+      "expires": "2027-01-01"
+    }
+  ],
+  "now": "2026-11-18T00:00:00Z",
+  "stage": "dev"
+}

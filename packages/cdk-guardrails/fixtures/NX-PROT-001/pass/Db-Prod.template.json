@@ -1,0 +1,37 @@
+{
+  "Resources": {
+    "Primary": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "DeletionProtection": true
+      }
+    },
+    "Replica": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t4g.medium",
+        "Engine": "postgres",
+        "SourceDBInstanceIdentifier": "primary"
+      }
+    },
+    "AuroraCluster": {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties": {
+        "Engine": "aurora-postgresql",
+        "DeletionProtection": true
+      }
+    },
+    "AuroraMember": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.r6g.large",
+        "Engine": "postgres",
+        "DBClusterIdentifier": {
+          "Ref": "AuroraCluster"
+        }
+      }
+    }
+  }
+}

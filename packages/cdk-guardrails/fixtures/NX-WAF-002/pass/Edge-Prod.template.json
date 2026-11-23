@@ -1,0 +1,103 @@
+{
+  "Resources": {
+    "Enforcing": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "CommonRuleSet",
+            "Priority": 1,
+            "OverrideAction": {
+              "None": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "CommonRuleSet",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "CommonRuleSet",
+              "SampledRequestsEnabled": true
+            }
+          },
+          {
+            "Name": "KnownBadInputs",
+            "Priority": 1,
+            "OverrideAction": {
+              "None": {}
+            },
+            "Statement": {
+              "ManagedRuleGroupStatement": {
+                "Name": "KnownBadInputs",
+                "VendorName": "AWS"
+              }
+            },
+            "VisibilityConfig": {
+              "CloudWatchMetricsEnabled": true,
+              "MetricName": "KnownBadInputs",
+              "SampledRequestsEnabled": true
+            }
+          }
+        ]
+      }
+    },
+    "EnforcingLog": {
+      "Type": "AWS::WAFv2::LoggingConfiguration",
+      "Properties": {
+        "ResourceArn": {
+          "Fn::GetAtt": [
+            "Enforcing",
+            "Arn"
+          ]
+        },
+        "LogDestinationConfigs": [
+          "arn:aws:logs:us-east-2:<ACCOUNT>:log-group:aws-waf-logs-x"
+        ]
+      }
+    },
+    "CustomOnly": {
+      "Type": "AWS::WAFv2::WebACL",
+      "Properties": {
+        "Scope": "REGIONAL",
+        "DefaultAction": {
+          "Allow": {}
+        },
+        "Rules": [
+          {
+            "Name": "rate",
+            "Priority": 0,
+            "Action": {
+              "Block": {}
+            },
+            "Statement": {
+              "RateBasedStatement": {
+                "Limit": 1000,
+                "AggregateKeyType": "IP"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "CustomOnlyLog": {
+      "Type": "AWS::WAFv2::LoggingConfiguration",
+      "Properties": {
+        "ResourceArn": {
+          "Fn::GetAtt": [
+            "CustomOnly",
+            "Arn"
+          ]
+        },
+        "LogDestinationConfigs": [
+          "arn:aws:logs:us-east-2:<ACCOUNT>:log-group:aws-waf-logs-x"
+        ]
+      }
+    }
+  }
+}

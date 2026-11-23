@@ -100,3 +100,64 @@ describe('adaptador 2: expectNextepCompliant (helper de Jest)', () => {
     expect(() => expectNextepCompliant(appWithDashboard({ excepted: true }), { stage: 'dev', exceptions: [ENTRY] })).not.toThrow();
   });
 });
+
+// ---- Avisos (warn) y metadatos del manifest, contra un App de CDK REAL (spec guardrails-prod-readiness §2.3, §4; GR-WARN, GR-META) ------------
+
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as cwActions from 'aws-cdk-lib/aws-cloudwatch-actions';
+
+/** Un app de prod con un topic de alarmas SIN suscriptor (solo dispara NX-ALM-001, un aviso). */
+function prodApp(opts: { plugin?: boolean; terminationProtection?: boolean } = {}): App {
+  const app = new App({ outdir: fs.mkdtempSync(path.join(os.tmpdir(), 'guardrails-')) });
+  if (opts.plugin) installGuardrails(app, { stage: 'prod' });
+  const stack = new Stack(app, 'Obs-Prod', { terminationProtection: opts.terminationProtection ?? true, env: { region: 'us-east-2' } });
+  const topic = new sns.Topic(stack, 'AlarmTopic');
+  new cw.Alarm(stack, 'Alarm', { metric: new cw.Metric({ namespace: 'Shop', metricName: 'Errors' }), threshold: 1, evaluationPeriods: 1 }).addAlarmAction(new cwActions.SnsAction(topic));
+  tagged(stack, 'prod');
+  return app;
+}
+
+describe('GR-WARN: las warn contra un App de CDK real', () => {
+  it('el plugin NO aborta el synth por un aviso (success: true, severidad warning)', () => {
+    expect(() => prodApp({ plugin: true }).synth()).not.toThrow();
+  });
+
+  it('el reporte del plugin lleva el aviso con severidad `warning` (la que CDK entiende) y success: true', () => {
+    const dir = prodApp().synth().directory;
+    const plugin = new NextepGuardrailsPlugin({ stage: 'prod', exceptions: [] });
+    const report = plugin.validate({ templatePaths: fs.readdirSync(dir).filter((f) => f.endsWith('.template.json')).map((f) => path.join(dir, f)) });
+    expect(report.success).toBe(true);
+    expect(report.violations.map((v) => [v.ruleName, v.severity])).toEqual([['NX-ALM-001', 'warning']]);
+    expect(report.violations[0]?.description).toMatch(/Obs-Prod\/AlarmTopic/);
+  });
+
+  it('con un error además del aviso, el plugin SÍ aborta el synth', () => {
+    const app = prodApp({ plugin: true });
+    new cw.CfnDashboard(app.node.findChild('Obs-Prod') as Stack, 'Board', { dashboardName: 'x', dashboardBody: '{"widgets":[]}' });
+    expect(() => app.synth()).toThrow(/NX-COST-001/);
+  });
+
+  it('el helper de Jest NO lanza por un aviso, pero lo imprime por stderr (no se pierde)', () => {
+    const spy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      expect(() => expectNextepCompliant(prodApp(), { stage: 'prod' })).not.toThrow();
+      expect(spy.mock.calls.map((c) => String(c[0])).join('')).toMatch(/WARN\s+\[NX-ALM-001\] Obs-Prod\/AlarmTopic/);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+describe('GR-META: el plugin y el helper leen manifest.json (TerminationProtection de NX-PROT-001)', () => {
+  it('un stack de prod SIN terminationProtection hace fallar el synth con el plugin, nombrando <stack>/(stack)', () => {
+    expect(() => prodApp({ plugin: true, terminationProtection: false }).synth()).toThrow(/NX-PROT-001[\s\S]*Obs-Prod\/\(stack\)|Obs-Prod\/\(stack\)[\s\S]*NX-PROT-001/);
+  });
+
+  it('con terminationProtection el mismo app sintetiza', () => {
+    expect(() => prodApp({ plugin: true, terminationProtection: true }).synth()).not.toThrow();
+  });
+
+  it('el helper de Jest ve lo mismo que el plugin (lee el manifest del cdk.out)', () => {
+    expect(() => expectNextepCompliant(prodApp({ terminationProtection: false }), { stage: 'prod' })).toThrow(/NX-PROT-001.*Obs-Prod\/\(stack\)/s);
+  });
+});

@@ -34,11 +34,24 @@ export interface CfnResource {
 }
 export interface CfnTemplate {
   Resources?: Record<string, CfnResource>;
+  Parameters?: Record<string, { Type?: string; Default?: unknown }>;
+  Outputs?: Record<string, { Value?: unknown; Export?: { Name?: unknown } }>;
 }
+/**
+ * Lo que el template de CloudFormation NO expone pero `manifest.json` del cdk.out sí (región y protección contra terminación del stack).
+ * `meta` ausente en un StackTemplate = no había manifest: una regla que lo necesite no puede evaluar esa parte.
+ */
+export interface StackMeta {
+  /** Región de `artifacts[<stack>].environment` (`aws://<cuenta>/<región>`); undefined si el stack no tiene región concreta. */
+  region?: string;
+  terminationProtection?: boolean;
+}
+
 /** Un template sintetizado (`cdk.out/<stack>.template.json`) con el id del stack al que pertenece. */
 export interface StackTemplate {
   stack: string;
   template: CfnTemplate;
+  meta?: StackMeta;
 }
 
 export interface Violation {
@@ -55,6 +68,12 @@ export interface Finding {
   stack: string;
   resource?: string;
   message: string;
+  /**
+   * ¿Este hallazgo admite excepción? Por defecto, lo que diga la regla. Solo puede RESTRINGIR: un hallazgo nunca es más permisivo que
+   * su regla (`allowsException: false` manda). Existe porque una misma regla puede tener hallazgos que se aceptan con motivo
+   * (p. ej. exceder un techo) y otros que no (p. ej. un log group eterno).
+   */
+  exceptable?: boolean;
 }
 
 export interface Rule {
@@ -66,5 +85,10 @@ export interface Rule {
   appliesTo: readonly Stage[];
   /** ¿Admite una excepción declarada dos veces? (spec §2.4) */
   allowsException: boolean;
+  /**
+   * La regla tiene camino de «falla cerrado» (no puede demostrar el cumplimiento y reporta). El gate GR1 exige entonces el fixture
+   * `fixtures/<id>/fail-unresolvable/`. Opcional: las reglas v1 no lo declaran.
+   */
+  failsClosed?: boolean;
   check(app: StackTemplate[], ctx: GuardrailsContext): Finding[];
 }

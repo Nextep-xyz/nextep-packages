@@ -1,0 +1,56 @@
+{
+  "Parameters": {
+    "Count": {
+      "Type": "Number"
+    },
+    "Min": {
+      "Type": "Number"
+    }
+  },
+  "Resources": {
+    "DynamicCount": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td",
+        "DesiredCount": {
+          "Ref": "Count"
+        }
+      }
+    },
+    "Backed": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "LaunchType": "FARGATE",
+        "Cluster": "cluster",
+        "TaskDefinition": "td"
+      }
+    },
+    "DynamicTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "ServiceNamespace": "ecs",
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "MaxCapacity": 4,
+        "MinCapacity": {
+          "Ref": "Min"
+        },
+        "ResourceId": {
+          "Fn::Join": [
+            "",
+            [
+              "service/cluster/",
+              {
+                "Fn::GetAtt": [
+                  "Backed",
+                  "Name"
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

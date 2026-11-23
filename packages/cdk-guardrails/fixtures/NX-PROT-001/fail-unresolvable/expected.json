@@ -1,0 +1,5 @@
+[
+  "Db-Prod/(stack)",
+  "Db-Prod/Dynamic",
+  "Edge-Prod/DynamicAlb"
+]

@@ -1,6 +1,7 @@
+import * as fs from 'fs';
 import { loadExceptionsFile, loadTemplatesFromDir } from './adapters/load';
 import { evaluate } from './engine';
-import { formatViolations } from './format';
+import { formatGithub, formatStepSummary, formatViolations } from './format';
 import { ALL_RULES } from './rules';
 import { STAGES, Stage } from './types';
 
@@ -10,10 +11,11 @@ export interface CliIo {
 }
 
 const USAGE = `uso:
-  nextep-guardrails check --out <cdk.out> --stage <dev|stg|prod|shared> [--exceptions <exceptions.yml>] [--shared-stacks <id,id,...>]
+  nextep-guardrails check --out <cdk.out> --stage <dev|stg|prod|shared> [--exceptions <exceptions.yml>] [--shared-stacks <id,id,...>] [--format <text|github>]
   nextep-guardrails --list-rules
 
-Códigos de salida: 0 = sin errores · 1 = hay violaciones con severidad error · 2 = uso incorrecto o no se pudo evaluar (p. ej. cdk.out sin templates).`;
+Formato: sin --format se autodetecta (github si GITHUB_ACTIONS=true, text si no). github emite anotaciones ::error/::warning; con GITHUB_STEP_SUMMARY definido se anexa una tabla Markdown (en cualquier formato).
+Códigos de salida: 0 = sin errores (los avisos no cuentan) · 1 = hay violaciones con severidad error · 2 = uso incorrecto o no se pudo evaluar (p. ej. cdk.out sin templates).`;
 
 /** Lee `--clave valor` y `--clave=valor`; devuelve los flags y los argumentos posicionales. */
 function parseFlags(args: string[]): { flags: Map<string, string>; rest: string[] } {
@@ -38,8 +40,23 @@ function parseFlags(args: string[]): { flags: Map<string, string>; rest: string[
   return { flags, rest };
 }
 
+/**
+ * Anexa la tabla al resumen del run si GITHUB_STEP_SUMMARY existe. Un fallo al escribir es un aviso y NO cambia el código de salida: el resumen
+ * es presentación, lo que decide el build es el exit code.
+ */
+function writeStepSummary(env: Record<string, string | undefined>, markdown: string, io: CliIo): void {
+  const file = env.GITHUB_STEP_SUMMARY;
+  if (!file) return;
+  try {
+    fs.appendFileSync(file, `${markdown}
+`);
+  } catch (e) {
+    io.err(`nextep-guardrails: aviso: no se pudo escribir GITHUB_STEP_SUMMARY (${(e as Error).message})`);
+  }
+}
+
 /** CLI (adaptador 3): evalúa un `cdk.out` ya generado, independiente del código del proyecto. Devuelve el código de salida. */
-export function main(argv: string[], io: CliIo = { out: (l) => console.log(l), err: (l) => console.error(l) }, now?: Date): number {
+export function main(argv: string[], io: CliIo = { out: (l) => console.log(l), err: (l) => console.error(l) }, now?: Date, env: Record<string, string | undefined> = process.env): number {
   try {
     const { flags, rest } = parseFlags(argv);
     if (flags.has('help')) {
@@ -51,18 +68,24 @@ export function main(argv: string[], io: CliIo = { out: (l) => console.log(l), e
       return 0;
     }
     if (rest[0] !== 'check' || rest.length !== 1) throw new Error(`comando desconocido o ausente (${JSON.stringify(rest.join(' '))})`);
-    const known = ['out', 'stage', 'exceptions', 'shared-stacks'];
+    const known = ['out', 'stage', 'exceptions', 'shared-stacks', 'format'];
     for (const k of flags.keys()) if (!known.includes(k)) throw new Error(`opción desconocida --${k} (no existe forma de desactivar una regla)`);
     const out = flags.get('out');
     const stage = flags.get('stage');
     if (!out) throw new Error('falta --out <directorio de cdk.out>');
     if (!stage || !(STAGES as readonly string[]).includes(stage)) throw new Error(`--stage debe ser uno de ${STAGES.join(', ')} (recibido: ${JSON.stringify(stage)})`);
 
+    const requested = flags.get('format');
+    if (requested !== undefined && requested !== 'text' && requested !== 'github') throw new Error(`--format debe ser text o github (recibido: ${JSON.stringify(requested)})`);
+    // Sin --format: github dentro de GitHub Actions (el consumidor no controla los flags de la CLI que llama su pipeline), text fuera.
+    const format = requested ?? (env.GITHUB_ACTIONS === 'true' ? 'github' : 'text');
+
     const templates = loadTemplatesFromDir(out);
     const exceptions = flags.has('exceptions') ? loadExceptionsFile(flags.get('exceptions') as string) : [];
     const sharedStacks = flags.get('shared-stacks')?.split(',').map((s) => s.trim()).filter(Boolean);
     const violations = evaluate(templates, { stage: stage as Stage, sharedStacks, exceptions, now });
-    io.out(formatViolations(violations, stage));
+    io.out(format === 'github' ? formatGithub(violations, stage) : formatViolations(violations, stage));
+    writeStepSummary(env, formatStepSummary(violations, stage), io);
     return violations.some((v) => v.severity === 'error') ? 1 : 0;
   } catch (e) {
     io.err(`nextep-guardrails: ${(e as Error).message}`);
