@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "@nextep/cdk-guardrails",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Guardarrailes de costo y estandar para proyectos CDK de Nextep: un motor puro que evalua los templates sinterizados, con un plugin de policy validation, un helper de Jest y una CLI.",
   "license": "Apache-2.0",
