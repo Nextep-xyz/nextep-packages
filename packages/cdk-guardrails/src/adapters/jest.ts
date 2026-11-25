@@ -1,5 +1,6 @@
 import { evaluate } from '../engine';
 import { formatViolations } from '../format';
+import { applyEnvMode } from '../mode';
 import type { ExceptionEntry, Stage } from '../types';
 import { loadExceptionsFile, loadTemplatesFromDir } from './load';
 
@@ -25,7 +26,8 @@ export function expectNextepCompliant(app: AppLike, opts: CompliantOptions): voi
   const directory = app.synth().directory;
   const templates = loadTemplatesFromDir(directory);
   const exceptions = opts.exceptions ?? (opts.exceptionsFile ? loadExceptionsFile(opts.exceptionsFile) : []);
-  const violations = evaluate(templates, { stage: opts.stage, sharedStacks: opts.sharedStacks, exceptions, now: opts.now });
+  // NEXTEP_GUARDRAILS_MODE=warn (la fija el pipeline): los errores se reportan como aviso y no lanzan; NX-EXC-00x sigue lanzando.
+  const violations = applyEnvMode(evaluate(templates, { stage: opts.stage, sharedStacks: opts.sharedStacks, exceptions, now: opts.now }), process.env, (l) => process.stderr.write(`${l}\n`));
   // Las `warn` no hacen fallar el test, pero tampoco se pierden: salen por stderr con el mismo formato que la CLI.
   const warns = violations.filter((v) => v.severity === 'warn');
   if (warns.length) process.stderr.write(`${formatViolations(warns, opts.stage)}

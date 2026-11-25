@@ -3,6 +3,7 @@ import * as path from 'path';
 import { discover, REPO_ROOT } from '@governance/gates/_discovery';
 import {
   checkManifest,
+  checkModeWiring,
   checkPublishConfig,
   checkSourceHygiene,
   checkTarballContents,
@@ -123,6 +124,29 @@ describe('GR8: la lógica (unit)', () => {
   });
 });
 
+describe('GR-MODE: la lógica (unit)', () => {
+  const wired = { file: 'src/adapters/ok.ts', text: 'const v = applyEnvMode(evaluate(t, c), process.env, w);' };
+
+  it('un adaptador que pasa por el modo pasa; el motor (define evaluate) queda fuera', () => {
+    const engine = { file: 'src/engine.ts', text: 'export function evaluate(a, b) { return []; }' };
+    expect(checkModeWiring([wired, engine])).toEqual([]);
+  });
+
+  it('un adaptador que evalúa sin modo falla nombrando el archivo', () => {
+    const out = checkModeWiring([wired, { file: 'src/adapters/nuevo.ts', text: 'const v = evaluate(t, c);' }]).join('\n');
+    expect(out).toMatch(/src\/adapters\/nuevo\.ts: llama a evaluate\(\) sin pasar por applyMode/);
+    expect(out).not.toMatch(/ok\.ts/);
+  });
+
+  it('una mención de applyMode en un comentario no cuenta', () => {
+    expect(checkModeWiring([{ file: 'src/a.ts', text: '// applyMode(x)\nconst v = evaluate(t, c);' }]).join('\n')).toMatch(/src\/a\.ts/);
+  });
+
+  it('sin ningún llamador falla (un gate sin sujetos no prueba nada)', () => {
+    expect(checkModeWiring([]).join('\n')).toMatch(/ningún archivo/);
+  });
+});
+
 // --- Los gates: recorren el disco / el tarball real -------------------------------------------------------------------------
 
 const readJson = (rel: string): PackageJson => JSON.parse(fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8')) as PackageJson;
@@ -131,6 +155,11 @@ describe('GR6/GR7: el gate (descubrimiento por disco)', () => {
   it('src/**/*.ts del paquete no usa red, procesos hijos ni evaluación dinámica', () => {
     const files = discover([`${PKG}/src/**/*.ts`], { min: 10 }).map((file) => ({ file, text: fs.readFileSync(path.join(REPO_ROOT, file), 'utf8') }));
     expect(checkSourceHygiene(files)).toEqual([]);
+  });
+
+  it('GR-MODE: todo archivo de src/ que llama al motor pasa su resultado por el modo (NEXTEP_GUARDRAILS_MODE)', () => {
+    const files = discover([`${PKG}/src/**/*.ts`], { min: 10 }).map((file) => ({ file, text: fs.readFileSync(path.join(REPO_ROOT, file), 'utf8') }));
+    expect(checkModeWiring(files)).toEqual([]);
   });
 
   it('package.json: cero dependencies de runtime y aws-cdk-lib/constructs solo como peerDependencies', () => {

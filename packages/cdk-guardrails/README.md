@@ -43,6 +43,23 @@ Las reglas con severidad `warn` (marcadas **Aviso** en el catálogo) **nunca** h
 
 Dentro de GitHub Actions, la CLI se autodetecta (`GITHUB_ACTIONS=true`) y emite **anotaciones** (`::warning title=<regla>::<mensaje>` y `::error …`) que aparecen en amarillo/rojo en el resumen del run; `--format text` lo desactiva y `--format github` lo fuerza. Si existe `GITHUB_STEP_SUMMARY`, además **anexa una tabla Markdown** con todas las violaciones (GitHub muestra como máximo 10 anotaciones de cada tipo por step: la tabla es el listado completo).
 
+### Modo: `NEXTEP_GUARDRAILS_MODE` (desde 0.3.0)
+
+Una variable de entorno, pensada para que el **pipeline** (no cada repo) decida qué hacer con las violaciones `error`. Los tres adaptadores la leen igual; no hay opción equivalente en código ni flag en la CLI.
+
+| Valor | Efecto |
+|---|---|
+| ausente, vacío o `enforce` | Comportamiento de siempre: una violación `error` hace fallar (CLI exit 1, helper de Jest lanza, el plugin aborta el synth). |
+| `warn` | Las violaciones `error` se reportan **como aviso** y no hacen fallar (exit 0). CLI: `WARN [downgraded from error]`, anotación `::warning` y tabla del resumen marcada «degradado de error». Plugin: severidad `warning` de CDK. Helper de Jest: stderr, sin lanzar. |
+| cualquier otro valor (`Warn`, `warn `, `off`…) | Se trata como `enforce` y se avisa por stderr (fail-closed: un typo nunca relaja). |
+
+Lo que **no** cambia en ningún modo: las violaciones de higiene de excepciones `NX-EXC-001..004` (marca sin entrada, entrada obsoleta o vencida, regla que no admite excepción) **siguen siendo error**: una excepción rota es un defecto de gobierno, no de costo. Tampoco cambian los usos incorrectos de la CLI (exit 2), las reglas ni sus severidades. Más detalle en `docs/mode.md`.
+
+```powershell
+$env:NEXTEP_GUARDRAILS_MODE = 'warn'
+nextep-guardrails check --out infra/cdk.out --stage prod   # exit 0; los errores salen como WARN [downgraded from error]
+```
+
 ## Catálogo
 
 `nextep-guardrails --list-rules` lo imprime. Cada regla tiene su doc en `docs/rules/<id>.md` (qué verifica, por qué, cómo corregirlo, de dónde viene, límites conocidos).

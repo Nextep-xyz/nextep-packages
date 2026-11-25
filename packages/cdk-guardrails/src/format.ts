@@ -1,4 +1,8 @@
+import type { GuardrailsMode } from './mode';
 import type { Violation } from './types';
+
+/** Marca visible de una violación que el modo `warn` bajó de `error`. */
+const DOWNGRADED = '[downgraded from error]';
 
 function counts(violations: Violation[]): { errors: number; warns: number; stacks: number } {
   const errors = violations.filter((v) => v.severity === 'error').length;
@@ -12,7 +16,8 @@ const summaryLine = (violations: Violation[], stage: string): string => {
 
 /** Texto de un reporte: una línea por violación (el mensaje ya nombra regla, stack y recurso) y un resumen. */
 export function formatViolations(violations: Violation[], stage: string): string {
-  const lines = violations.map((v) => `${v.severity === 'error' ? 'ERROR' : 'WARN '} ${v.message}`);
+  const label = (v: Violation): string => (v.severity === 'error' ? 'ERROR' : v.downgraded ? `WARN ${DOWNGRADED}` : 'WARN ');
+  const lines = violations.map((v) => `${label(v)} ${v.message}`);
   lines.push(summaryLine(violations, stage));
   return lines.join('\n');
 }
@@ -28,7 +33,7 @@ export const escapeCommandProperty = (s: string): string => escapeCommandData(s)
  * step: el listado completo va en la tabla de `GITHUB_STEP_SUMMARY` (`formatStepSummary`).
  */
 export function formatGithub(violations: Violation[], stage: string): string {
-  const lines = violations.map((v) => `::${v.severity === 'error' ? 'error' : 'warning'} title=${escapeCommandProperty(v.ruleId)}::${escapeCommandData(v.message)}`);
+  const lines = violations.map((v) => `::${v.severity === 'error' ? 'error' : 'warning'} title=${escapeCommandProperty(v.ruleId)}::${v.downgraded ? `${DOWNGRADED} ` : ''}${escapeCommandData(v.message)}`);
   lines.push(summaryLine(violations, stage));
   return lines.join('\n');
 }
@@ -36,10 +41,11 @@ export function formatGithub(violations: Violation[], stage: string): string {
 /** Una celda de tabla Markdown: sin pipes ni saltos de línea ni HTML que rompan la tabla o se rendericen. */
 export const escapeCell = (s: string): string => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Sección Markdown para `GITHUB_STEP_SUMMARY`: conteos y una tabla con TODAS las violaciones (errores primero). */
-export function formatStepSummary(violations: Violation[], stage: string): string {
+/** Sección Markdown para `GITHUB_STEP_SUMMARY`: conteos y una tabla con TODAS las violaciones (errores primero). En modo `warn` lo declara en la cabecera. */
+export function formatStepSummary(violations: Violation[], stage: string, mode: GuardrailsMode = 'enforce'): string {
   const { errors, warns } = counts(violations);
   const out = [`### nextep-guardrails · stage \`${stage}\``, ''];
+  if (mode === 'warn') out.push('Modo `NEXTEP_GUARDRAILS_MODE=warn`: las violaciones de severidad error se reportan como aviso (excepto NX-EXC-00x, que siguen siendo error).', '');
   if (violations.length === 0) {
     out.push('Sin violaciones.', '');
     return out.join('\n');
@@ -47,7 +53,7 @@ export function formatStepSummary(violations: Violation[], stage: string): strin
   out.push(`**${errors} error(es)** y **${warns} aviso(s)**.`, '', '| Severidad | Regla | Stack | Recurso | Mensaje |', '|---|---|---|---|---|');
   const ordered = [...violations].sort((a, b) => Number(b.severity === 'error') - Number(a.severity === 'error'));
   for (const v of ordered) {
-    out.push(`| ${v.severity === 'error' ? 'error' : 'aviso'} | \`${escapeCell(v.ruleId)}\` | \`${escapeCell(v.stack)}\` | \`${escapeCell(v.resource ?? '')}\` | ${escapeCell(v.message)} |`);
+    out.push(`| ${v.severity === 'error' ? 'error' : v.downgraded ? 'aviso (degradado de error)' : 'aviso'} | \`${escapeCell(v.ruleId)}\` | \`${escapeCell(v.stack)}\` | \`${escapeCell(v.resource ?? '')}\` | ${escapeCell(v.message)} |`);
   }
   out.push('');
   return out.join('\n');

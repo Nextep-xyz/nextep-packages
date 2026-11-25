@@ -104,3 +104,17 @@ export function checkTarballLayout(paths: string[], expectedPresent: string[], e
   }
   return p;
 }
+
+/**
+ * GR-MODE (F0 de cumplimiento-paquetes-por-ambiente): todo adaptador que llama al motor (`evaluate(`) debe pasar su resultado por el modo
+ * (`applyMode(` / `applyEnvMode(`). Un adaptador nuevo, escrito por quien no leyó la regla, que evalúe sin pasar por el modo ignoraría
+ * `NEXTEP_GUARDRAILS_MODE`: el pipeline lo pondría en `warn` y ese camino seguiría bloqueando (o, peor, el paquete diría que lo honra y no).
+ * El archivo que DEFINE `evaluate` (el motor) queda fuera por contenido, no por nombre.
+ */
+export function checkModeWiring(files: SourceFile[]): string[] {
+  const callers = files.filter((f) => /(?<!function\s)\bevaluate\s*\(/.test(stripComments(f.text)) && !/\bfunction\s+evaluate\s*\(/.test(stripComments(f.text)));
+  if (callers.length === 0) return ['ningún archivo de src/ llama al motor (evaluate): un gate sin sujetos no prueba nada'];
+  return callers
+    .filter((f) => !/\b(?:applyMode|applyEnvMode)\s*\(/.test(stripComments(f.text)))
+    .map((f) => `${f.file}: llama a evaluate() sin pasar por applyMode()/applyEnvMode(); no honraría NEXTEP_GUARDRAILS_MODE`);
+}

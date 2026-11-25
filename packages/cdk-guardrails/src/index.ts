@@ -1,6 +1,8 @@
 export { evaluate } from './engine';
 export { ALL_RULES } from './rules';
 export { formatViolations } from './format';
+export { applyMode, MODE_ENV, resolveMode } from './mode';
+export type { GuardrailsMode, ResolvedMode } from './mode';
 export { expectNextepCompliant } from './adapters/jest';
 export type { CompliantOptions } from './adapters/jest';
 export { loadExceptionsFile, loadTemplatesFromDir } from './adapters/load';

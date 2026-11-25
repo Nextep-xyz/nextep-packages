@@ -1,4 +1,5 @@
 import { evaluate } from '../engine';
+import { applyEnvMode } from '../mode';
 import { ALL_RULES } from '../rules';
 import type { ExceptionEntry, Stage, Violation } from '../types';
 import { loadExceptionsFile, readTemplates, stackIdOf } from './load';
@@ -73,14 +74,15 @@ export class NextepGuardrailsPlugin {
   validate(context: PolicyValidationContextLike): PolicyReportLike {
     rejectAcknowledgments(context.appConstruct);
     const templates = readTemplates(context.templatePaths);
-    const violations = evaluate(templates, { stage: this.opts.stage, sharedStacks: this.opts.sharedStacks, exceptions: this.exceptions, now: this.opts.now });
+    // El modo se lee aquí (al sintetizar), no al construir el plugin: NEXTEP_GUARDRAILS_MODE=warn la fija el pipeline. NX-EXC-00x no se degrada.
+    const violations = applyEnvMode(evaluate(templates, { stage: this.opts.stage, sharedStacks: this.opts.sharedStacks, exceptions: this.exceptions, now: this.opts.now }), process.env, (l) => process.stderr.write(`${l}\n`));
     const pathOf = (v: Violation): string => context.templatePaths.find((p) => stackIdOf(p) === v.stack) ?? (context.templatePaths[0] as string);
     return {
       success: !violations.some((v) => v.severity === 'error'),
       violations: violations.map((v) => ({
         ruleName: v.ruleId,
         // La CLI de CDK solo imprime el archivo del template y el logical id: el mensaje completo (con stack y recurso) va en la descripción.
-        description: v.message,
+        description: v.downgraded ? `[downgraded from error] ${v.message}` : v.message,
         fix: `docs/rules/${v.ruleId}.md`,
         // CDK solo conoce fatal|error|warning|info: una severidad 'warn' se mostraria como «custom». Con success:true el reporte se imprime y NO aborta el synth.
         severity: v.severity === 'warn' ? 'warning' : v.severity,

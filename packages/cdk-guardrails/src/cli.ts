@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import { loadExceptionsFile, loadTemplatesFromDir } from './adapters/load';
 import { evaluate } from './engine';
-import { formatGithub, formatStepSummary, formatViolations } from './format';
+import { applyMode, resolveMode } from './mode';
+import { formatGithub,formatStepSummary, formatViolations } from './format';
 import { ALL_RULES } from './rules';
 import { STAGES, Stage } from './types';
 
@@ -15,6 +16,7 @@ const USAGE = `uso:
   nextep-guardrails --list-rules
 
 Formato: sin --format se autodetecta (github si GITHUB_ACTIONS=true, text si no). github emite anotaciones ::error/::warning; con GITHUB_STEP_SUMMARY definido se anexa una tabla Markdown (en cualquier formato).
+Modo: la variable NEXTEP_GUARDRAILS_MODE (enforce por defecto) la fija el pipeline; con warn las violaciones de severidad error se reportan como aviso y no hacen fallar (NX-EXC-00x sigue fallando). Cualquier otro valor se trata como enforce y se avisa.
 Códigos de salida: 0 = sin errores (los avisos no cuentan) · 1 = hay violaciones con severidad error · 2 = uso incorrecto o no se pudo evaluar (p. ej. cdk.out sin templates).`;
 
 /** Lee `--clave valor` y `--clave=valor`; devuelve los flags y los argumentos posicionales. */
@@ -83,9 +85,11 @@ export function main(argv: string[], io: CliIo = { out: (l) => console.log(l), e
     const templates = loadTemplatesFromDir(out);
     const exceptions = flags.has('exceptions') ? loadExceptionsFile(flags.get('exceptions') as string) : [];
     const sharedStacks = flags.get('shared-stacks')?.split(',').map((s) => s.trim()).filter(Boolean);
-    const violations = evaluate(templates, { stage: stage as Stage, sharedStacks, exceptions, now });
+    const { mode, invalid } = resolveMode(env);
+    if (invalid) io.err(`nextep-guardrails: aviso: ${invalid}`);
+    const violations = applyMode(evaluate(templates, { stage: stage as Stage, sharedStacks, exceptions, now }), mode);
     io.out(format === 'github' ? formatGithub(violations, stage) : formatViolations(violations, stage));
-    writeStepSummary(env, formatStepSummary(violations, stage), io);
+    writeStepSummary(env, formatStepSummary(violations, stage, mode), io);
     return violations.some((v) => v.severity === 'error') ? 1 : 0;
   } catch (e) {
     io.err(`nextep-guardrails: ${(e as Error).message}`);

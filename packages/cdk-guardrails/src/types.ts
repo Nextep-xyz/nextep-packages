@@ -61,6 +61,8 @@ export interface Violation {
   resource?: string;
   /** Siempre nombra la regla, el stack y el recurso: la CLI de CDK solo muestra el archivo del template. */
   message: string;
+  /** `true` si el modo `warn` (NEXTEP_GUARDRAILS_MODE) reclasificó esta violación de `error` a `warn`. Ausente = la severidad es la de la regla. */
+  downgraded?: boolean;
 }
 
 /** Lo que devuelve una regla; el motor le agrega ruleId y severity. */
